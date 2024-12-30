@@ -7,6 +7,7 @@ import yaml
 from src.pydantic_models.agent_info import AgentInfo
 from src.pydantic_models.reddit_credentials import RedditCredentials
 from src.providers.openai_provider import OpenAIProvider
+from src.pydantic_models.openai_credentials import OpenAICredentials
 
 reddit_credentials_filename = 'config/reddit_credentials.yaml'
 
@@ -29,6 +30,14 @@ reddit = praw.Reddit(
 KnownProviders = Enum('KnownProviders', ['openai'])
 
 
+def load_config(path: str):
+	if os.path.exists(path):
+		with open(path) as f:
+			return yaml.safe_load(f)
+	else:
+		raise FileNotFoundError(f"File {path} not found. Create it by copying {path}.example to {path} and edit the values.")
+
+
 def run():
 	parser = argparse.ArgumentParser()
 	parser.add_argument("agent_schema", type=argparse.FileType('r'))
@@ -41,14 +50,7 @@ def run():
 	print(f'Using provider: {provider_enum.name}')
 
 	if provider_enum.name == KnownProviders.openai.name:
-		from src.pydantic_models.openai_credentials import OpenAICredentials
-		openai_credentials_filename = 'config/openai_credentials.yaml'
-		if os.path.exists(openai_credentials_filename):
-			with open(openai_credentials_filename) as f:
-				credentials_obj = yaml.safe_load(f)
-		else:
-			raise FileNotFoundError(
-			    f"File {openai_credentials_filename} not found. Create it by copying openai_credentials.yaml.example to openai_credentials.yaml and filling in the values.")
+		credentials_obj = load_config('config/openai_credentials.yaml')
 		credentials = OpenAICredentials(**credentials_obj)
 		provider = OpenAIProvider(credentials)
 	else:
