@@ -1,10 +1,12 @@
 import argparse
+from enum import Enum
 import os
 import praw  # type: ignore
 import yaml
 
 from src.pydantic_models.agent_info import AgentInfo
 from src.pydantic_models.reddit_credentials import RedditCredentials
+from src.providers.openai_provider import OpenAIProvider
 
 reddit_credentials_filename = 'config/reddit_credentials.yaml'
 
@@ -24,11 +26,34 @@ reddit = praw.Reddit(
     username=credentials.username,
 )
 
+KnownProviders = Enum('KnownProviders', ['openai'])
+
 
 def run():
 	parser = argparse.ArgumentParser()
 	parser.add_argument("agent_schema", type=argparse.FileType('r'))
+	parser.add_argument("provider", type=str)
 	args = parser.parse_args()
+
+	if args.provider not in [provider.name for provider in KnownProviders]:
+		raise ValueError(f"Unknown provider: {args.provider}")
+	provider_enum = KnownProviders[args.provider]
+	print(f'Using provider: {provider_enum.name}')
+
+	if provider_enum.name == KnownProviders.openai.name:
+		from src.pydantic_models.openai_credentials import OpenAICredentials
+		openai_credentials_filename = 'config/openai_credentials.yaml'
+		if os.path.exists(openai_credentials_filename):
+			with open(openai_credentials_filename) as f:
+				credentials_obj = yaml.safe_load(f)
+		else:
+			raise FileNotFoundError(
+			    f"File {openai_credentials_filename} not found. Create it by copying openai_credentials.yaml.example to openai_credentials.yaml and filling in the values.")
+		credentials = OpenAICredentials(**credentials_obj)
+		provider = OpenAIProvider(credentials)
+	else:
+		raise ValueError(f"Provider not implemented: {provider_enum.name}")
+
 	agent_schema = args.agent_schema
 	agent_schema_obj = yaml.safe_load(agent_schema)
 
@@ -38,13 +63,19 @@ def run():
 
 	while True:
 		print('Commands:')
-		print("  l=List posts")
+		print("  l=List posts, t=Generate a test submission without posting")
 		print("Enter command:")
 		command = input()
 		if command == "l":
 			print(f'Listing posts from subreddit: {agent_info.active_subreddit}')
 			for submission in reddit.subreddit(agent_info.active_subreddit).new(limit=10):
 				print(submission.title)
+		if command == "t":
+			prompt = "Generate an engaging reddit submission"
+			system_prompt = agent_info.bio
+			response = provider.generate_text(system_prompt, prompt)
+			print("Response:")
+			print(response)
 		else:
 			print("Invalid command")
 
