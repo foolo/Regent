@@ -11,7 +11,7 @@ pip install pyyaml
 Running with the example agent
 
 ```
-python3 reddit.py config/example_agent.yaml
+python3 main.py config/example_agent.yaml
 ```
 
 ### Generate models
