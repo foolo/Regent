@@ -2,8 +2,9 @@ import argparse
 import os
 import praw  # type: ignore
 import yaml
-from agent_info_model import AgentInfo
-from reddit_credentials_model import RedditCredentials
+
+from src.pydantic_models.agent_info import AgentInfo
+from src.pydantic_models.reddit_credentials import RedditCredentials
 
 reddit_credentials_filename = 'config/reddit_credentials.yaml'
 
