@@ -74,14 +74,14 @@ def run():
 			print(f'Listing posts from subreddit: {agent_info.active_subreddit}')
 			for submission in reddit.subreddit(agent_info.active_subreddit).new(limit=10):
 				print(submission.title)
-		if command == "t":
+		elif command == "t":
 			prompt = "Generate an engaging reddit submission. Use at most 500 characters. Avoid emojis and hashtags."
 			system_prompt = agent_info.bio
 			response = provider.generate_submission(system_prompt, prompt)
 			print("Response:")
 			print(response)
 		else:
-			print("Invalid command")
+			print(f"Invalid command: '{command}'")
 
 
 if __name__ == '__main__':
