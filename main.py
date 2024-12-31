@@ -77,7 +77,7 @@ def run():
 		if command == "t":
 			prompt = "Generate an engaging reddit submission"
 			system_prompt = agent_info.bio
-			response = provider.generate_text(system_prompt, prompt)
+			response = provider.generate_submission(system_prompt, prompt)
 			print("Response:")
 			print(response)
 		else:
