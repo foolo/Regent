@@ -1,4 +1,4 @@
-# Enter your Reddit app credentials and username here
+# Enter your Reddit app configuration here
 # You should find this information on https://www.reddit.com/prefs/apps
 
 client_id: "MY_REDDIT_APP_CLIENT_ID"

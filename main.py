@@ -5,26 +5,26 @@ import praw  # type: ignore
 import yaml
 
 from src.pydantic_models.agent_info import AgentInfo
-from src.pydantic_models.reddit_credentials import RedditCredentials
+from src.pydantic_models.reddit_config import RedditConfig
 from src.providers.openai_provider import OpenAIProvider
-from src.pydantic_models.openai_credentials import OpenAICredentials
+from src.pydantic_models.openai_config import OpenAIConfig
 
 
 def initialize_reddit():
-	credentials_filename = 'config/reddit_credentials.yaml'
+	config_filename = 'config/reddit_config.yaml'
 
-	if os.path.exists(credentials_filename):
-		with open(credentials_filename) as f:
-			credentials_obj = yaml.safe_load(f)
+	if os.path.exists(config_filename):
+		with open(config_filename) as f:
+			config_obj = yaml.safe_load(f)
 	else:
-		raise FileNotFoundError(f"File {credentials_filename} not found. Create it by copying {credentials_filename}.example to {credentials_filename} and filling in the values.")
+		raise FileNotFoundError(f"File {config_filename} not found. Create it by copying {config_filename}.example to {config_filename} and filling in the values.")
 
-	credentials = RedditCredentials(**credentials_obj)
+	config = RedditConfig(**config_obj)
 	reddit = praw.Reddit(
-	    client_id=credentials.client_id,
-	    client_secret=credentials.client_secret,
-	    user_agent="RedditAiBot, " + credentials.username,
-	    username=credentials.username,
+	    client_id=config.client_id,
+	    client_secret=config.client_secret,
+	    user_agent="RedditAiBot, " + config.username,
+	    username=config.username,
 	)
 	return reddit
 
@@ -52,9 +52,9 @@ def run():
 	print(f'Using provider: {provider_enum.name}')
 
 	if provider_enum.name == Providers.openai.name:
-		credentials_obj = load_config('config/openai_credentials.yaml')
-		credentials = OpenAICredentials(**credentials_obj)
-		provider = OpenAIProvider(credentials)
+		config_obj = load_config('config/openai_config.yaml')
+		config = OpenAIConfig(**config_obj)
+		provider = OpenAIProvider(config)
 	else:
 		raise ValueError(f"Provider not implemented: {provider_enum.name}")
 
