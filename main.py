@@ -29,9 +29,6 @@ def initialize_reddit():
 	return reddit
 
 
-Providers = Enum('KnownProviders', ['openai'])
-
-
 def load_config(path: str):
 	if os.path.exists(path):
 		with open(path) as f:
@@ -48,6 +45,7 @@ def run():
 
 	reddit = initialize_reddit()
 
+	Providers = Enum('KnownProviders', ['openai'])
 	if args.provider not in [provider.name for provider in Providers]:
 		raise ValueError(f"Unknown provider: {args.provider}")
 	provider_enum = Providers[args.provider]
