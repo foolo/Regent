@@ -75,7 +75,7 @@ def run():
 			for submission in reddit.subreddit(agent_info.active_subreddit).new(limit=10):
 				print(submission.title)
 		if command == "t":
-			prompt = "Generate an engaging reddit submission"
+			prompt = "Generate an engaging reddit submission. Use at most 500 characters. Avoid emojis and hashtags."
 			system_prompt = agent_info.bio
 			response = provider.generate_submission(system_prompt, prompt)
 			print("Response:")
