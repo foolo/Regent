@@ -17,8 +17,7 @@ def initialize_reddit():
 		with open(credentials_filename) as f:
 			credentials_obj = yaml.safe_load(f)
 	else:
-		raise FileNotFoundError(
-		    f"File {credentials_filename} not found. Create it by copying reddit_credentials.yaml.example to reddit_credentials.yaml and filling in the values.")
+		raise FileNotFoundError(f"File {credentials_filename} not found. Create it by copying {credentials_filename}.example to {credentials_filename} and filling in the values.")
 
 	credentials = RedditCredentials(**credentials_obj)
 	reddit = praw.Reddit(
