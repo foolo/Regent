@@ -4,11 +4,15 @@
 	"type": "object",
 	"title": "RedditConfig",
 	"required": [
+		"username",
 		"client_id",
-		"client_secret",
-		"username"
+		"client_secret"
 	],
 	"properties": {
+		"username": {
+			"type": "string",
+			"description": "The username of the reddit account"
+		},
 		"client_id": {
 			"type": "string",
 			"description": "The client id of the reddit app"
@@ -16,10 +20,6 @@
 		"client_secret": {
 			"type": "string",
 			"description": "The client secret of the reddit app"
-		},
-		"username": {
-			"type": "string",
-			"description": "The username of the reddit account"
 		}
 	}
 }

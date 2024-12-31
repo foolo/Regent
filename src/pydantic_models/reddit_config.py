@@ -7,6 +7,6 @@ from pydantic import BaseModel, Field
 
 
 class RedditConfig(BaseModel):
+    username: str = Field(..., description='The username of the reddit account')
     client_id: str = Field(..., description='The client id of the reddit app')
     client_secret: str = Field(..., description='The client secret of the reddit app')
-    username: str = Field(..., description='The username of the reddit account')
