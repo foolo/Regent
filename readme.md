@@ -13,7 +13,7 @@ pip install openai   #if using OpenAI model
 Running with the example agent
 
 ```
-python3 main.py config/example_agent.yaml openai
+python3 main.py agents/example_agent.yaml openai
 ```
 
 ### Generate models
