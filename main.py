@@ -47,7 +47,7 @@ def run():
 
 	Providers = Enum('KnownProviders', ['openai'])
 	if args.provider not in [provider.name for provider in Providers]:
-		raise ValueError(f"Unknown provider: {args.provider}")
+		raise ValueError(f"Unknown provider: {args.provider}. Available providers: {', '.join([provider.name for provider in Providers])}")
 	provider_enum = Providers[args.provider]
 	print(f'Using provider: {provider_enum.name}')
 
