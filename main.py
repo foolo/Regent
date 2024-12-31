@@ -27,7 +27,7 @@ reddit = praw.Reddit(
     username=credentials.username,
 )
 
-KnownProviders = Enum('KnownProviders', ['openai'])
+Providers = Enum('KnownProviders', ['openai'])
 
 
 def load_config(path: str):
@@ -44,12 +44,12 @@ def run():
 	parser.add_argument("provider", type=str)
 	args = parser.parse_args()
 
-	if args.provider not in [provider.name for provider in KnownProviders]:
+	if args.provider not in [provider.name for provider in Providers]:
 		raise ValueError(f"Unknown provider: {args.provider}")
-	provider_enum = KnownProviders[args.provider]
+	provider_enum = Providers[args.provider]
 	print(f'Using provider: {provider_enum.name}')
 
-	if provider_enum.name == KnownProviders.openai.name:
+	if provider_enum.name == Providers.openai.name:
 		credentials_obj = load_config('config/openai_credentials.yaml')
 		credentials = OpenAICredentials(**credentials_obj)
 		provider = OpenAIProvider(credentials)
