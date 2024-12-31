@@ -9,23 +9,26 @@ from src.pydantic_models.reddit_credentials import RedditCredentials
 from src.providers.openai_provider import OpenAIProvider
 from src.pydantic_models.openai_credentials import OpenAICredentials
 
-reddit_credentials_filename = 'config/reddit_credentials.yaml'
 
-if os.path.exists(reddit_credentials_filename):
-	with open(reddit_credentials_filename) as f:
-		credentials_obj = yaml.safe_load(f)
-else:
-	raise FileNotFoundError(
-	    f"File {reddit_credentials_filename} not found. Create it by copying reddit_credentials.yaml.example to reddit_credentials.yaml and filling in the values.")
+def initialize_reddit():
+	credentials_filename = 'config/reddit_credentials.yaml'
 
-credentials = RedditCredentials(**credentials_obj)
+	if os.path.exists(credentials_filename):
+		with open(credentials_filename) as f:
+			credentials_obj = yaml.safe_load(f)
+	else:
+		raise FileNotFoundError(
+		    f"File {credentials_filename} not found. Create it by copying reddit_credentials.yaml.example to reddit_credentials.yaml and filling in the values.")
 
-reddit = praw.Reddit(
-    client_id=credentials.client_id,
-    client_secret=credentials.client_secret,
-    user_agent="RedditAiBot, " + credentials.username,
-    username=credentials.username,
-)
+	credentials = RedditCredentials(**credentials_obj)
+	reddit = praw.Reddit(
+	    client_id=credentials.client_id,
+	    client_secret=credentials.client_secret,
+	    user_agent="RedditAiBot, " + credentials.username,
+	    username=credentials.username,
+	)
+	return reddit
+
 
 Providers = Enum('KnownProviders', ['openai'])
 
@@ -43,6 +46,8 @@ def run():
 	parser.add_argument("agent_schema", type=argparse.FileType('r'))
 	parser.add_argument("provider", type=str)
 	args = parser.parse_args()
+
+	reddit = initialize_reddit()
 
 	if args.provider not in [provider.name for provider in Providers]:
 		raise ValueError(f"Unknown provider: {args.provider}")
