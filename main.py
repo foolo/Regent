@@ -93,8 +93,15 @@ def run():
 			prompt = "Generate an engaging reddit submission. Use at most 500 characters. Avoid emojis and hashtags."
 			system_prompt = agent_info.bio
 			response = provider.generate_submission(system_prompt, prompt)
+			if response is None:
+				print("Failed to generate a response")
+				continue
 			print("Response:")
 			print(response)
+			if input(f"Post submission to {agent_info.active_subreddit}? (y/n): ") == "y":
+				print("Posting...")
+				reddit.subreddit(agent_info.active_subreddit).submit(response.title, selftext=response.selftext)
+				print("Posted!")
 		else:
 			print(f"Invalid command: '{command}'")
 
