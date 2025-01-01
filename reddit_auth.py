@@ -9,6 +9,8 @@ from src.reddit_config_loader import REDDIT_CONFIG_FILENAME, load_reddit_config
 
 # Modified from https://praw.readthedocs.io/en/stable/tutorials/refresh_token.html#obtaining-refresh-tokens
 
+SCOPES = ["identity", "submit", "read", "privatemessages"]
+
 
 def retrieve_refresh_token() -> int:
 	config = load_reddit_config()
@@ -20,9 +22,9 @@ def retrieve_refresh_token() -> int:
 	    user_agent=config.user_agent,
 	    redirect_uri=f"http://{redirect_host}:{redirect_port}",
 	)
-	scopes = ["identity", "submit", "read"]
+
 	state = str(time.time())
-	url = reddit.auth.url(duration="permanent", scopes=scopes, state=state)  # type: ignore
+	url = reddit.auth.url(duration="permanent", scopes=SCOPES, state=state)  # type: ignore
 	print(f"To connect your Reddit account to this application, open the following URL in your browser:")
 	print(url)  # type: ignore
 

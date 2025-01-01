@@ -6,10 +6,17 @@ from src.pydantic_models.agent_info import AgentInfo
 def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: praw.Reddit):
 	while True:
 		print('Commands:')
-		print("  l=List posts, t=Generate a test submission without posting")
+		print("  l=List posts, t=Generate a test submission without posting, i=Show inbox")
 		print("Enter command:")
 		command = input()
-		if command == "l":
+		if command == "i":
+			print("Inbox:")
+			for item in reddit.inbox.unread(limit=None):
+				if isinstance(item, praw.models.Comment):
+					print(f"Comment from: {item.author}, Comment: {item.body}")
+				elif isinstance(item, praw.models.Message):
+					print(f"Message from: {item.author}, Subject: {item.subject}, Message: {item.body}")
+		elif command == "l":
 			print(f'Listing posts from subreddit: {agent_info.active_subreddit}')
 			for submission in reddit.subreddit(agent_info.active_subreddit).new(limit=10):
 				print(submission.title)
