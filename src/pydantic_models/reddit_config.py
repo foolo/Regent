@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+from typing import Optional
+
 from pydantic import BaseModel, Field
 
 
@@ -10,3 +12,6 @@ class RedditConfig(BaseModel):
     username: str = Field(..., description='The username of the reddit account')
     client_id: str = Field(..., description='The client id of the reddit app')
     client_secret: str = Field(..., description='The client secret of the reddit app')
+    refresh_token: Optional[str] = Field(
+        None, description='The refresh token of the reddit app'
+    )

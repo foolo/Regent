@@ -3,3 +3,4 @@ username: "MY_REDDIT_USERNAME"
 # Reddit app configuration, found on https://www.reddit.com/prefs/apps
 client_id: "MY_REDDIT_APP_CLIENT_ID"
 client_secret: "MY_REDDIT_APP_CLIENT_SECRET"
+refresh_token: "" # Leave this empty as a first step. You will be instructed to add it once the Oauth2 flow has been completed, which will run automatically if the refresh token is empty.

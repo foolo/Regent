@@ -1,9 +1,11 @@
 import argparse
 from enum import Enum
 import os
+import sys
 import praw  # type: ignore
 import yaml
 
+from src.reddit_auth import retrieve_refresh_token
 from src.pydantic_models.agent_info import AgentInfo
 from src.pydantic_models.reddit_config import RedditConfig
 from src.providers.openai_provider import OpenAIProvider
@@ -19,13 +21,26 @@ def initialize_reddit():
 	else:
 		raise FileNotFoundError(f"File {config_filename} not found. Create it by copying {config_filename}.example to {config_filename} and filling in the values.")
 
+	redirect_host = 'localhost'
+	redirect_port = 8080
+
 	config = RedditConfig(**config_obj)
 	reddit = praw.Reddit(
 	    client_id=config.client_id,
 	    client_secret=config.client_secret,
 	    user_agent="RedditAiBot, " + config.username,
+	    redirect_uri=f"http://{redirect_host}:{redirect_port}",
+	    refresh_token=config.refresh_token,
 	    username=config.username,
 	)
+
+	if not config.refresh_token or config.refresh_token == "":
+		print("No refresh token found. Starting the process to generate one...")
+		retrieve_refresh_token(reddit, redirect_host, redirect_port)
+		print(f"A refresh token has been generated. Add it in {config_filename} and restart the program.")
+		sys.exit(0)
+
+	print(f"Logged in as: {reddit.user.me()}")
 	return reddit
 
 
