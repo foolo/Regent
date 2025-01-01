@@ -3,4 +3,7 @@ username: "MY_REDDIT_USERNAME"
 # Reddit app configuration, found on https://www.reddit.com/prefs/apps
 client_id: "MY_REDDIT_APP_CLIENT_ID"
 client_secret: "MY_REDDIT_APP_CLIENT_SECRET"
-refresh_token: "" # Leave this empty as a first step. You will be instructed to add it once the Oauth2 flow has been completed, which will run automatically if the refresh token is empty.
+refresh_token: "" # Leave this empty as a first step. Then run 'python reddit_auth.py' to generate a refresh token.
+
+# Optional fields:
+# user_agent: "MY_USER_AGENT" # If you want to specify a custom user agent, you can do so here. If left empty, the default user agent will be used.

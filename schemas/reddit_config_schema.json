@@ -13,6 +13,10 @@
 			"type": "string",
 			"description": "The username of the reddit account"
 		},
+		"user_agent": {
+			"type": "string",
+			"description": "The user agent of the reddit app"
+		},
 		"client_id": {
 			"type": "string",
 			"description": "The client id of the reddit app"

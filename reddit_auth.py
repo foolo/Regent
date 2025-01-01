@@ -1,13 +1,26 @@
 #!/usr/bin/env python
 
 import socket
+import sys
 import time
 import praw  # type: ignore
+
+from src.reddit_config_loader import REDDIT_CONFIG_FILENAME, load_reddit_config
 
 # Modified from https://praw.readthedocs.io/en/stable/tutorials/refresh_token.html#obtaining-refresh-tokens
 
 
-def retrieve_refresh_token(reddit: praw.Reddit, redirect_host: str, redirect_port: int) -> int:
+def retrieve_refresh_token() -> int:
+	config = load_reddit_config()
+	redirect_host = 'localhost'
+	redirect_port = 8080
+	reddit = praw.Reddit(
+	    client_id=config.client_id,
+	    client_secret=config.client_secret,
+	    user_agent=config.user_agent,
+	    redirect_uri=f"http://{redirect_host}:{redirect_port}",
+	    username=config.username,
+	)
 	scopes = ["identity", "submit", "read"]
 	state = str(time.time())
 	url = reddit.auth.url(duration="permanent", scopes=scopes, state=state)  # type: ignore
@@ -31,6 +44,7 @@ def retrieve_refresh_token(reddit: praw.Reddit, redirect_host: str, redirect_por
 
 	refresh_token = reddit.auth.authorize(params["code"])
 	send_message(client, f"Refresh token: {refresh_token}")
+	print(f"A refresh token has been generated. Add it in {REDDIT_CONFIG_FILENAME} and restart the program.")
 	return 0
 
 
@@ -54,3 +68,7 @@ def send_message(client: socket.socket, message: str):
 	print(message)
 	client.send(f"HTTP/1.1 200 OK\r\n\r\n{message}".encode("utf-8"))
 	client.close()
+
+
+if __name__ == "__main__":
+	sys.exit(retrieve_refresh_token())

@@ -5,41 +5,24 @@ import sys
 import praw  # type: ignore
 import yaml
 
-from src.reddit_auth import retrieve_refresh_token
+from src.reddit_config_loader import load_reddit_config
 from src.pydantic_models.agent_info import AgentInfo
-from src.pydantic_models.reddit_config import RedditConfig
 from src.providers.openai_provider import OpenAIProvider
 from src.pydantic_models.openai_config import OpenAIConfig
 
 
 def initialize_reddit():
-	config_filename = 'config/reddit_config.yaml'
-
-	if os.path.exists(config_filename):
-		with open(config_filename) as f:
-			config_obj = yaml.safe_load(f)
-	else:
-		raise FileNotFoundError(f"File {config_filename} not found. Create it by copying {config_filename}.example to {config_filename} and filling in the values.")
-
-	redirect_host = 'localhost'
-	redirect_port = 8080
-
-	config = RedditConfig(**config_obj)
+	config = load_reddit_config()
+	if not config.refresh_token or config.refresh_token == "":
+		print("No reddit refresh token found. Run 'python reddit_auth.py' to generate one.")
+		sys.exit(0)
 	reddit = praw.Reddit(
 	    client_id=config.client_id,
 	    client_secret=config.client_secret,
-	    user_agent="RedditAiBot, " + config.username,
-	    redirect_uri=f"http://{redirect_host}:{redirect_port}",
+	    user_agent=config.user_agent,
 	    refresh_token=config.refresh_token,
 	    username=config.username,
 	)
-
-	if not config.refresh_token or config.refresh_token == "":
-		print("No refresh token found. Starting the process to generate one...")
-		retrieve_refresh_token(reddit, redirect_host, redirect_port)
-		print(f"A refresh token has been generated. Add it in {config_filename} and restart the program.")
-		sys.exit(0)
-
 	print(f"Logged in as: {reddit.user.me()}")
 	return reddit
 
