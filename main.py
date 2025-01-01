@@ -22,9 +22,8 @@ def initialize_reddit():
 	    client_secret=config.client_secret,
 	    user_agent=config.user_agent,
 	    refresh_token=config.refresh_token,
-	    username=config.username,
 	)
-	print(f"Logged in as: {reddit.user.me()}")
+	print(f"Logged in as: {reddit.user.me()}")  # type: ignore
 	return reddit
 
 

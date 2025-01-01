@@ -11,8 +11,7 @@ pip install openai   #if using OpenAI model
 
 ### Create a Reddit application
 
-While logged into the Reddit account with which you want to run the agent,
-create a Reddit application on https://www.reddit.com/prefs/apps/
+Create a Reddit application on https://www.reddit.com/prefs/apps/
 
 Select "web app" and set the redirect URI to `http://localhost:8080`
 
@@ -26,6 +25,8 @@ After the application is created, take note of:
 Copy `config/reddit_config.yaml.example` to `config/reddit_config.yaml` and fill in the fields, but leave `refresh_token` empty.
 
 ### Generate a Reddit refresh token
+
+Make sure you are logged in to the Reddit account with which you want to run the agent.
 
 Run `python reddit_auth.py` to generate a refresh token.
 Add the refresh token to `reddit_config.yaml`.

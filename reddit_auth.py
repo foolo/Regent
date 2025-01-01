@@ -19,7 +19,6 @@ def retrieve_refresh_token() -> int:
 	    client_secret=config.client_secret,
 	    user_agent=config.user_agent,
 	    redirect_uri=f"http://{redirect_host}:{redirect_port}",
-	    username=config.username,
 	)
 	scopes = ["identity", "submit", "read"]
 	state = str(time.time())
@@ -44,7 +43,7 @@ def retrieve_refresh_token() -> int:
 
 	refresh_token = reddit.auth.authorize(params["code"])
 	send_message(client, f"Refresh token: {refresh_token}")
-	print(f"A refresh token has been generated. Add it in {REDDIT_CONFIG_FILENAME} and restart the program.")
+	print(f"A refresh token has been generated. Add it in {REDDIT_CONFIG_FILENAME} and start the application.")
 	return 0
 
 

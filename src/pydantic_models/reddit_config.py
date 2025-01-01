@@ -9,12 +9,11 @@ from pydantic import BaseModel, Field
 
 
 class RedditConfig(BaseModel):
-    username: str = Field(..., description='The username of the reddit account')
-    user_agent: Optional[str] = Field(
-        None, description='The user agent of the reddit app'
-    )
     client_id: str = Field(..., description='The client id of the reddit app')
     client_secret: str = Field(..., description='The client secret of the reddit app')
     refresh_token: Optional[str] = Field(
         None, description='The refresh token of the reddit app'
+    )
+    user_agent: Optional[str] = Field(
+        None, description='The user agent of the reddit app'
     )
