@@ -25,3 +25,16 @@ class OpenAIProvider(BaseProvider):
 		    response_format=RedditSubmission,
 		)
 		return completion.choices[0].message.parsed
+
+	def generate_comment(self, system_prompt: str, prompt: str) -> str | None:
+		completion = self._client.chat.completions.create(model=self._model, messages=[
+		    {
+		        "role": 'system',
+		        "content": system_prompt
+		    },
+		    {
+		        "role": 'user',
+		        "content": prompt
+		    },
+		])
+		return completion.choices[0].message.content
