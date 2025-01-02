@@ -1,4 +1,7 @@
+import time
 import praw
+import praw.models
+from src.reddit_utils import get_comment_chain
 import praw.models
 from src.providers.base_provider import BaseProvider
 from src.pydantic_models.agent_info import AgentInfo
@@ -7,10 +10,21 @@ from src.pydantic_models.agent_info import AgentInfo
 def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: praw.Reddit):
 	while True:
 		print('Commands:')
-		print("  l=List posts, t=Generate a test submission without posting, i=Show inbox")
+		print("  l=List posts, t=Generate a test submission without posting, i=Show inbox, c=Handle comment")
 		print("Enter command:")
 		command = input()
-		if command == "i":
+		if command == "c":
+			for item in reddit.inbox.unread(limit=None):
+				if isinstance(item, praw.models.Comment):
+					current_utc = int(time.time())
+					if current_utc - item.created_utc > 600:
+						print(f"Handle comment from: {item.author}, Comment: {item.body}")
+						root_submission, comments = get_comment_chain(item, reddit)
+						print(f"- Root submission: {root_submission}, Author: {root_submission.author}, Text: {root_submission.selftext}")
+						for comment in comments:
+							print(f"- Comment: {comment}, Author: {comment.author}, Text: {comment.body}")
+						break
+		elif command == "i":
 			print("Inbox:")
 			for item in reddit.inbox.unread(limit=None):  # type: ignore
 				if isinstance(item, praw.models.Comment):
