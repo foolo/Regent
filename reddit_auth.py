@@ -3,7 +3,7 @@
 import socket
 import sys
 import time
-import praw  # type: ignore
+import praw
 
 from src.reddit_config_loader import REDDIT_CONFIG_FILENAME, load_reddit_config
 
@@ -24,9 +24,9 @@ def retrieve_refresh_token() -> int:
 	)
 
 	state = str(time.time())
-	url = reddit.auth.url(duration="permanent", scopes=SCOPES, state=state)  # type: ignore
+	url = reddit.auth.url(duration="permanent", scopes=SCOPES, state=state)
 	print(f"To connect your Reddit account to this application, open the following URL in your browser:")
-	print(url)  # type: ignore
+	print(url)
 
 	client = receive_connection(redirect_host, redirect_port)
 	data = client.recv(1024).decode("utf-8")

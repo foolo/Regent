@@ -1,4 +1,5 @@
-import praw  # type: ignore
+import praw
+import praw.models
 from src.providers.base_provider import BaseProvider
 from src.pydantic_models.agent_info import AgentInfo
 
@@ -11,7 +12,7 @@ def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: praw.Reddit
 		command = input()
 		if command == "i":
 			print("Inbox:")
-			for item in reddit.inbox.unread(limit=None):
+			for item in reddit.inbox.unread(limit=None):  # type: ignore
 				if isinstance(item, praw.models.Comment):
 					print(f"Comment from: {item.author}, Comment: {item.body}")
 				elif isinstance(item, praw.models.Message):

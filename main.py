@@ -2,7 +2,7 @@ import argparse
 from enum import Enum
 import os
 import sys
-import praw  # type: ignore
+import praw
 import yaml
 
 from src.agent import run_agent
@@ -23,7 +23,7 @@ def initialize_reddit():
 	    user_agent=config.user_agent,
 	    refresh_token=config.refresh_token,
 	)
-	print(f"Logged in as: {reddit.user.me()}")  # type: ignore
+	print(f"Logged in as: {reddit.user.me()}")
 	return reddit
 
 
