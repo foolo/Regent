@@ -11,6 +11,15 @@ from src.pydantic_models.agent_info import AgentInfo
 logger = logging.getLogger(__name__)
 
 
+def select_comment(reddit: praw.Reddit) -> praw.models.Comment | None:
+	for item in reddit.inbox.unread(limit=None):  # type: ignore
+		if isinstance(item, praw.models.Comment):
+			current_utc = int(time.time())
+			if current_utc - item.created_utc > 600:
+				return item
+	return None
+
+
 def handle_comment(item: praw.models.Comment, reddit: praw.Reddit, agent_info: AgentInfo, provider: BaseProvider, username: str):
 	logger.info(f"Handle comment from: {item.author}, Comment: {item.body}")
 	root_submission, comments = get_comment_chain(item, reddit)
@@ -63,12 +72,11 @@ def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: praw.Reddit
 				logger.warning("No user logged in")
 				continue
 			username = current_user.name
-			for item in reddit.inbox.unread(limit=None):  # type: ignore
-				if isinstance(item, praw.models.Comment):
-					current_utc = int(time.time())
-					if current_utc - item.created_utc > 600:
-						handle_comment(item, reddit, agent_info, provider, username)
-						break
+			item = select_comment(reddit)
+			if item:
+				handle_comment(item, reddit, agent_info, provider, username)
+			else:
+				logger.info("No comment for handling found")
 		elif command == "i":
 			print("Inbox:")
 			for item in reddit.inbox.unread(limit=None):  # type: ignore
