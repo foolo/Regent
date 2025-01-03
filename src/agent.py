@@ -36,11 +36,11 @@ def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: praw.Reddit
 						system_prompt = agent_info.agent_description + "\n\n"
 						system_prompt += "You are in a conversation on Reddit. The conversation is a chain of comments on the subreddit r/" + root_submission.subreddit.display_name + ".\n"
 						system_prompt += "Your username in the conversation is " + username + ".\n"
-						system_prompt += "Your task is to first determine whether the last comment in the conversation requires a response."
-						system_prompt += "Some examples of comments that require a response are questions, requests for clarification, or comments that are open-ended.\n"
-						system_prompt += "Some examples of comments that do not require a response are comments that are acknowledgements and agreements.\n"
-						system_prompt += "If a response is needed, set the 'reply_needed' field to true and provide a response in the 'body' field. Otherwise set the 'reply_needed' field to false and leave the 'body' field undefined.\n"
-						system_prompt += "The response, if reeded, should be thoughtful and engaging and at most 500 characters long.\n"
+						system_prompt += "Your task is to first determine whether the last comment in the conversation requires a reply."
+						system_prompt += "Some examples of comments that require a reply are questions, requests for clarification, or comments that are open-ended.\n"
+						system_prompt += "Some examples of comments that do not require a reply are comments that are acknowledgements and agreements.\n"
+						system_prompt += "If a reply is needed, set the 'reply_needed' field to true and provide a reply in the 'body' field. Otherwise set the 'reply_needed' field to false and leave the 'body' field undefined.\n"
+						system_prompt += "The reply, if reeded, should be thoughtful and engaging and at most 500 characters long.\n"
 						prompt = "The conversation is as follows: \n" + json.dumps(conversation_struct, indent=1)
 						logger.info("System Prompt:")
 						logger.info(system_prompt)
@@ -54,12 +54,12 @@ def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: praw.Reddit
 						logger.info(response)
 						if response.reply_needed:
 							if not response.body or response.body == "":
-								logger.warning("Response needed but no body provided")
+								logger.warning("Reply needed but no body provided")
 								continue
-							if input("Post response? (y/n): ") == "y":
-								logger.info("Posting response...")
+							if input("Post reply? (y/n): ") == "y":
+								logger.info("Posting reply...")
 								comments[-1].reply(response.body)
-								logger.info("Response posted")
+								logger.info("Reply posted")
 						break
 		elif command == "i":
 			print("Inbox:")
