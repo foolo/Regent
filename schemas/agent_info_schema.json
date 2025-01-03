@@ -6,7 +6,8 @@
 	"required": [
 		"name",
 		"agent_description",
-		"active_subreddit"
+		"active_subreddit",
+		"behavior"
 	],
 	"properties": {
 		"name": {
@@ -20,6 +21,24 @@
 		"active_subreddit": {
 			"type": "string",
 			"description": "The subreddit the agent is active in. Exclude the r/ prefix."
+		},
+		"behavior": {
+			"type": "object",
+			"description": "The behavior of the agent",
+			"required": [
+				"reply_needed_classification",
+				"reply_style"
+			],
+			"properties": {
+				"reply_needed_classification": {
+					"type": "string",
+					"description": "Explain what kinds of comments the agent should reply to, and what kinds it should ignore."
+				},
+				"reply_style": {
+					"type": "string",
+					"description": "The style of the agent's replies."
+				}
+			}
 		}
 	}
 }

@@ -34,13 +34,17 @@ def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: praw.Reddit
 						conversation_struct['comments'] = [{'author': comment.author.name, 'text': comment.body} for comment in comments]
 
 						system_prompt = agent_info.agent_description + "\n\n"
+
 						system_prompt += "You are in a conversation on Reddit. The conversation is a chain of comments on the subreddit r/" + root_submission.subreddit.display_name + ".\n"
 						system_prompt += "Your username in the conversation is " + username + ".\n"
-						system_prompt += "Your task is to first determine whether the last comment in the conversation requires a reply."
-						system_prompt += "Some examples of comments that require a reply are questions, requests for clarification, or comments that are open-ended.\n"
-						system_prompt += "Some examples of comments that do not require a reply are comments that are acknowledgements and agreements.\n"
+						system_prompt += "Your task is to first determine whether the last comment in the conversation requires a reply.\n"
+
+						system_prompt += agent_info.behavior.reply_needed_classification + "\n"
+
 						system_prompt += "If a reply is needed, set the 'reply_needed' field to true and provide a reply in the 'body' field. Otherwise set the 'reply_needed' field to false and leave the 'body' field undefined.\n"
-						system_prompt += "The reply, if reeded, should be thoughtful and engaging and at most 500 characters long.\n"
+
+						system_prompt += agent_info.behavior.reply_style + "\n"
+
 						prompt = "The conversation is as follows: \n" + json.dumps(conversation_struct, indent=1)
 						logger.info("System Prompt:")
 						logger.info(system_prompt)

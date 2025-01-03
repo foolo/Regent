@@ -6,9 +6,18 @@ from __future__ import annotations
 from pydantic import BaseModel, Field
 
 
+class Behavior(BaseModel):
+    reply_needed_classification: str = Field(
+        ...,
+        description='Explain what kinds of comments the agent should reply to, and what kinds it should ignore.',
+    )
+    reply_style: str = Field(..., description="The style of the agent's replies.")
+
+
 class AgentInfo(BaseModel):
     name: str = Field(..., description='The name of the agent')
     agent_description: str = Field(..., description='A description of the agent')
     active_subreddit: str = Field(
         ..., description='The subreddit the agent is active in. Exclude the r/ prefix.'
     )
+    behavior: Behavior = Field(..., description='The behavior of the agent')
