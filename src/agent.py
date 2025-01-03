@@ -33,7 +33,7 @@ def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: praw.Reddit
 						conversation_struct['root_post'] = {'author': root_submission.author.name, 'title': root_submission.title, 'text': root_submission.selftext}
 						conversation_struct['comments'] = [{'author': comment.author.name, 'text': comment.body} for comment in comments]
 
-						system_prompt = agent_info.bio + "\n\n"
+						system_prompt = agent_info.agent_description + "\n\n"
 						system_prompt += "You are in a conversation on Reddit. The conversation is a chain of comments on the subreddit r/" + root_submission.subreddit.display_name + ".\n"
 						system_prompt += "Your username in the conversation is " + username + ".\n"
 						system_prompt += "Your task is to first determine whether the last comment in the conversation requires a response."
@@ -74,7 +74,7 @@ def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: praw.Reddit
 				print(submission.title)
 		elif command == "t":
 			prompt = "Generate an engaging reddit submission. Use at most 500 characters. Avoid emojis and hashtags."
-			system_prompt = agent_info.bio
+			system_prompt = agent_info.agent_description
 			response = provider.generate_submission(system_prompt, prompt)
 			if response is None:
 				print("Failed to generate a response")

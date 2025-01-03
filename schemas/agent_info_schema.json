@@ -5,7 +5,7 @@
 	"title": "AgentInfo",
 	"required": [
 		"name",
-		"bio",
+		"agent_description",
 		"active_subreddit"
 	],
 	"properties": {
@@ -13,9 +13,9 @@
 			"type": "string",
 			"description": "The name of the agent"
 		},
-		"bio": {
+		"agent_description": {
 			"type": "string",
-			"description": "A short description of the agent"
+			"description": "A description of the agent"
 		},
 		"active_subreddit": {
 			"type": "string",
