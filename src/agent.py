@@ -20,7 +20,7 @@ def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: praw.Reddit
 				print("No user logged in")
 				continue
 			username = current_user.name
-			for item in reddit.inbox.unread(limit=None):
+			for item in reddit.inbox.unread(limit=None):  # type: ignore
 				if isinstance(item, praw.models.Comment):
 					current_utc = int(time.time())
 					if current_utc - item.created_utc > 600:
