@@ -29,9 +29,6 @@ def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: praw.Reddit
 					if current_utc - item.created_utc > 600:
 						logger.info(f"Handle comment from: {item.author}, Comment: {item.body}")
 						root_submission, comments = get_comment_chain(item, reddit)
-						logger.debug(f"- Root submission: {root_submission}, Author: {root_submission.author}, Title: {root_submission.title}, Text: {root_submission.selftext}")
-						for comment in comments:
-							logger.debug(f"- Comment: {comment}, Author: {comment.author}, Text: {comment.body}")
 						conversation_struct = {}
 						conversation_struct['root_post'] = {'author': root_submission.author.name, 'title': root_submission.title, 'text': root_submission.selftext}
 						conversation_struct['comments'] = [{'author': comment.author.name, 'text': comment.body} for comment in comments]
@@ -60,9 +57,9 @@ def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: praw.Reddit
 								logger.warning("Response needed but no body provided")
 								continue
 							if input("Post response? (y/n): ") == "y":
-								logger.info("Posting...")
+								logger.info("Posting response...")
 								comments[-1].reply(response.body)
-								logger.info("Posted")
+								logger.info("Response posted")
 						break
 		elif command == "i":
 			print("Inbox:")
@@ -85,8 +82,8 @@ def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: praw.Reddit
 			logger.info("Response:")
 			logger.info(response)
 			if input(f"Post submission to {agent_info.active_subreddit}? (y/n): ") == "y":
-				logger.info("Posting...")
+				logger.info("Posting submission...")
 				reddit.subreddit(agent_info.active_subreddit).submit(response.title, selftext=response.selftext)
-				logger.info("Posted")
+				logger.info("Submission posted")
 		else:
 			print(f"Invalid command: '{command}'")
