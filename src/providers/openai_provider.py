@@ -1,5 +1,5 @@
 from openai import OpenAI
-from src.reddit_submission import RedditSubmission
+from src.providers.response_models import RedditCommentReply, RedditSubmission
 from src.providers.base_provider import BaseProvider
 from src.pydantic_models.openai_config import OpenAIConfig
 
@@ -26,15 +26,19 @@ class OpenAIProvider(BaseProvider):
 		)
 		return completion.choices[0].message.parsed
 
-	def generate_comment(self, system_prompt: str, prompt: str) -> str | None:
-		completion = self._client.chat.completions.create(model=self._model, messages=[
-		    {
-		        "role": 'system',
-		        "content": system_prompt
-		    },
-		    {
-		        "role": 'user',
-		        "content": prompt
-		    },
-		])
-		return completion.choices[0].message.content
+	def generate_comment(self, system_prompt: str, prompt: str) -> RedditCommentReply | None:
+		completion = self._client.beta.chat.completions.parse(
+		    model=self._model,
+		    messages=[
+		        {
+		            "role": 'system',
+		            "content": system_prompt
+		        },
+		        {
+		            "role": 'user',
+		            "content": prompt
+		        },
+		    ],
+		    response_format=RedditCommentReply,
+		)
+		return completion.choices[0].message.parsed

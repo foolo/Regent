@@ -36,7 +36,11 @@ def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: praw.Reddit
 						system_prompt = agent_info.bio + "\n\n"
 						system_prompt += "You are in a conversation on Reddit. The conversation is a chain of comments on the subreddit r/" + root_submission.subreddit.display_name + ".\n"
 						system_prompt += "Your username in the conversation is " + username + ".\n"
-						system_prompt += "Your task is to provide a thoughtful and engaging response to the conversation. The response should be at most 500 characters long.\n"
+						system_prompt += "Your task is to first determine whether the last comment in the conversation requires a response."
+						system_prompt += "Some examples of comments that require a response are questions, requests for clarification, or comments that are open-ended.\n"
+						system_prompt += "Some examples of comments that do not require a response are comments that are acknowledgements and agreements.\n"
+						system_prompt += "If a response is needed, set the 'reply_needed' field to true and provide a response in the 'body' field. Otherwise set the 'reply_needed' field to false and leave the 'body' field undefined.\n"
+						system_prompt += "The response, if reeded, should be thoughtful and engaging and at most 500 characters long.\n"
 						prompt = "The conversation is as follows: \n" + json.dumps(conversation_struct, indent=1)
 						print("System Prompt:")
 						print(system_prompt)
@@ -48,10 +52,14 @@ def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: praw.Reddit
 							continue
 						print("Response:")
 						print(response)
-						if input("Post response? (y/n): ") == "y":
-							print("Posting...")
-							comments[-1].reply(response)
-							print("Posted!")
+						if response.reply_needed:
+							if not response.body or response.body == "":
+								print("Warning: Response needed but no body provided")
+								continue
+							if input("Post response? (y/n): ") == "y":
+								print("Posting...")
+								comments[-1].reply(response.body)
+								print("Posted!")
 						break
 		elif command == "i":
 			print("Inbox:")

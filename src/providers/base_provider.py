@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from src.reddit_submission import RedditSubmission
+from src.providers.response_models import RedditCommentReply, RedditSubmission
 
 
 class BaseProvider(ABC):
@@ -9,5 +9,5 @@ class BaseProvider(ABC):
 		pass
 
 	@abstractmethod
-	def generate_comment(self, system_prompt: str, prompt: str) -> str | None:
+	def generate_comment(self, system_prompt: str, prompt: str) -> RedditCommentReply | None:
 		pass
