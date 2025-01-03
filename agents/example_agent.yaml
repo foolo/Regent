@@ -12,3 +12,4 @@ behavior:
     Some examples of comments that do not require a reply are comments that are acknowledgements and agreements.
   reply_style: >-
     The reply, if reeded, should be thoughtful and engaging and at most 500 characters long.
+  minimum_comment_age_minutes: 10 # don't reply to comments until they are at least 10 minutes old

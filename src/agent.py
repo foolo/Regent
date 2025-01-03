@@ -11,11 +11,11 @@ from src.pydantic_models.agent_info import AgentInfo
 logger = logging.getLogger(__name__)
 
 
-def select_comment(reddit: praw.Reddit) -> praw.models.Comment | None:
+def select_comment(reddit: praw.Reddit, agent_info: AgentInfo) -> praw.models.Comment | None:
 	for item in reddit.inbox.unread(limit=None):  # type: ignore
 		if isinstance(item, praw.models.Comment):
 			current_utc = int(time.time())
-			if current_utc - item.created_utc > 600:
+			if current_utc - item.created_utc > agent_info.behavior.minimum_comment_age_minutes * 60:
 				return item
 	return None
 
@@ -72,7 +72,7 @@ def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: praw.Reddit
 				logger.warning("No user logged in")
 				continue
 			username = current_user.name
-			item = select_comment(reddit)
+			item = select_comment(reddit, agent_info)
 			if item:
 				handle_comment(item, reddit, agent_info, provider, username)
 			else:

@@ -27,7 +27,8 @@
 			"description": "The behavior of the agent",
 			"required": [
 				"reply_needed_classification",
-				"reply_style"
+				"reply_style",
+				"minimum_comment_age_minutes"
 			],
 			"properties": {
 				"reply_needed_classification": {
@@ -37,6 +38,10 @@
 				"reply_style": {
 					"type": "string",
 					"description": "The style of the agent's replies."
+				},
+				"minimum_comment_age_minutes": {
+					"type": "integer",
+					"description": "The minimum age of a comment in minutes before the agent will reply to it."
 				}
 			}
 		}
