@@ -1,4 +1,5 @@
 import json
+import logging
 import time
 import praw
 import praw.models
@@ -6,6 +7,8 @@ from src.reddit_utils import get_comment_chain
 import praw.models
 from src.providers.base_provider import BaseProvider
 from src.pydantic_models.agent_info import AgentInfo
+
+logger = logging.getLogger(__name__)
 
 
 def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: praw.Reddit):
@@ -17,18 +20,18 @@ def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: praw.Reddit
 		if command == "c":
 			current_user = reddit.user.me()
 			if not current_user:
-				print("No user logged in")
+				logger.warning("No user logged in")
 				continue
 			username = current_user.name
 			for item in reddit.inbox.unread(limit=None):  # type: ignore
 				if isinstance(item, praw.models.Comment):
 					current_utc = int(time.time())
 					if current_utc - item.created_utc > 600:
-						print(f"Handle comment from: {item.author}, Comment: {item.body}")
+						logger.info(f"Handle comment from: {item.author}, Comment: {item.body}")
 						root_submission, comments = get_comment_chain(item, reddit)
-						print(f"- Root submission: {root_submission}, Author: {root_submission.author}, Title: {root_submission.title}, Text: {root_submission.selftext}")
+						logger.debug(f"- Root submission: {root_submission}, Author: {root_submission.author}, Title: {root_submission.title}, Text: {root_submission.selftext}")
 						for comment in comments:
-							print(f"- Comment: {comment}, Author: {comment.author}, Text: {comment.body}")
+							logger.debug(f"- Comment: {comment}, Author: {comment.author}, Text: {comment.body}")
 						conversation_struct = {}
 						conversation_struct['root_post'] = {'author': root_submission.author.name, 'title': root_submission.title, 'text': root_submission.selftext}
 						conversation_struct['comments'] = [{'author': comment.author.name, 'text': comment.body} for comment in comments]
@@ -42,24 +45,24 @@ def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: praw.Reddit
 						system_prompt += "If a response is needed, set the 'reply_needed' field to true and provide a response in the 'body' field. Otherwise set the 'reply_needed' field to false and leave the 'body' field undefined.\n"
 						system_prompt += "The response, if reeded, should be thoughtful and engaging and at most 500 characters long.\n"
 						prompt = "The conversation is as follows: \n" + json.dumps(conversation_struct, indent=1)
-						print("System Prompt:")
-						print(system_prompt)
-						print("Prompt:")
-						print(prompt)
+						logger.info("System Prompt:")
+						logger.info(system_prompt)
+						logger.info("Prompt:")
+						logger.info(prompt)
 						response = provider.generate_comment(system_prompt, prompt)
 						if response is None:
-							print("Failed to generate a response")
+							logger.warning("Failed to generate a response")
 							continue
-						print("Response:")
-						print(response)
+						logger.info(f"Response:")
+						logger.info(response)
 						if response.reply_needed:
 							if not response.body or response.body == "":
-								print("Warning: Response needed but no body provided")
+								logger.warning("Response needed but no body provided")
 								continue
 							if input("Post response? (y/n): ") == "y":
-								print("Posting...")
+								logger.info("Posting...")
 								comments[-1].reply(response.body)
-								print("Posted!")
+								logger.info("Posted")
 						break
 		elif command == "i":
 			print("Inbox:")
@@ -77,13 +80,13 @@ def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: praw.Reddit
 			system_prompt = agent_info.agent_description
 			response = provider.generate_submission(system_prompt, prompt)
 			if response is None:
-				print("Failed to generate a response")
+				logger.error("Failed to generate a response")
 				continue
-			print("Response:")
-			print(response)
+			logger.info("Response:")
+			logger.info(response)
 			if input(f"Post submission to {agent_info.active_subreddit}? (y/n): ") == "y":
-				print("Posting...")
+				logger.info("Posting...")
 				reddit.subreddit(agent_info.active_subreddit).submit(response.title, selftext=response.selftext)
-				print("Posted!")
+				logger.info("Posted")
 		else:
 			print(f"Invalid command: '{command}'")
