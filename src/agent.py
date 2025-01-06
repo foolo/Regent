@@ -73,10 +73,25 @@ def select_and_handle_comment(reddit: praw.Reddit, agent_info: AgentInfo, provid
 		logger.info("No comment for handling found")
 
 
+def create_submission(reddit: praw.Reddit, agent_info: AgentInfo, provider: BaseProvider):
+	prompt = "Generate an engaging reddit submission. Use at most 500 characters. Avoid emojis and hashtags."
+	system_prompt = agent_info.agent_description
+	response = provider.generate_submission(system_prompt, prompt)
+	if response is None:
+		logger.error("Failed to generate a response")
+		return
+	logger.info("Response:")
+	logger.info(response)
+	if input(f"Post submission to {agent_info.active_subreddit}? (y/n): ") == "y":
+		logger.info("Posting submission...")
+		reddit.subreddit(agent_info.active_subreddit).submit(response.title, selftext=response.selftext)
+		logger.info("Submission posted")
+
+
 def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: praw.Reddit):
 	while True:
 		print('Commands:')
-		print("  l=List posts, t=Generate a test submission without posting, i=Show inbox, c=Handle comment")
+		print("  l=List posts, cs=Create a submission, i=Show inbox, c=Handle comment")
 		print("Enter command:")
 		command = input()
 		if command == "c":
@@ -92,18 +107,7 @@ def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: praw.Reddit
 			print(f'Listing posts from subreddit: {agent_info.active_subreddit}')
 			for submission in reddit.subreddit(agent_info.active_subreddit).new(limit=10):
 				print(submission.title)
-		elif command == "t":
-			prompt = "Generate an engaging reddit submission. Use at most 500 characters. Avoid emojis and hashtags."
-			system_prompt = agent_info.agent_description
-			response = provider.generate_submission(system_prompt, prompt)
-			if response is None:
-				logger.error("Failed to generate a response")
-				continue
-			logger.info("Response:")
-			logger.info(response)
-			if input(f"Post submission to {agent_info.active_subreddit}? (y/n): ") == "y":
-				logger.info("Posting submission...")
-				reddit.subreddit(agent_info.active_subreddit).submit(response.title, selftext=response.selftext)
-				logger.info("Submission posted")
+		elif command == "cs":
+			create_submission(reddit, agent_info, provider)
 		else:
 			print(f"Invalid command: '{command}'")
