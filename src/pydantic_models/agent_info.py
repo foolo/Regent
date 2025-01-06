@@ -12,6 +12,9 @@ class Behavior(BaseModel):
         description='Explain what kinds of comments the agent should reply to, and what kinds it should ignore.',
     )
     reply_style: str = Field(..., description="The style of the agent's replies.")
+    submission_style: str = Field(
+        ..., description="The style of the agent's submissions."
+    )
     minimum_comment_age_minutes: int = Field(
         ...,
         description='The minimum age of a comment in minutes before the agent will reply to it.',

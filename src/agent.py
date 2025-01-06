@@ -78,7 +78,7 @@ def select_and_handle_comment(reddit: praw.Reddit, agent_info: AgentInfo, provid
 
 
 def create_submission(reddit: praw.Reddit, agent_info: AgentInfo, provider: BaseProvider, interactive: bool):
-	prompt = "Generate an engaging reddit submission. Use at most 500 characters. Avoid emojis and hashtags."
+	prompt = "Generate a reddit submission. " + agent_info.behavior.submission_style
 	system_prompt = agent_info.agent_description
 	logger.info("System prompt:")
 	logger.info(system_prompt)
