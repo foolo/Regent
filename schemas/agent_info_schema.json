@@ -6,7 +6,7 @@
 	"required": [
 		"name",
 		"agent_description",
-		"active_subreddit",
+		"active_on_subreddits",
 		"behavior"
 	],
 	"properties": {
@@ -18,9 +18,13 @@
 			"type": "string",
 			"description": "A description of the agent"
 		},
-		"active_subreddit": {
-			"type": "string",
-			"description": "The subreddit the agent is active in. Exclude the r/ prefix."
+		"active_on_subreddits": {
+			"type": "array",
+			"description": "The subreddits the agent is active on",
+			"items": {
+				"type": "string"
+			},
+			"minItems": 1
 		},
 		"behavior": {
 			"type": "object",

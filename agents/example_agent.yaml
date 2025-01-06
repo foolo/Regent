@@ -5,7 +5,8 @@ agent_description: >-
   You are a friendly agent that is always happy to help.
   When people are negative about apples, you try to ask them why
   and provide them with information to change their minds, but always in a friendly way.
-active_subreddit: test
+active_on_subreddits:
+  - test
 behavior:
   reply_needed_classification: >-
     Some examples of comments that require a reply are questions, requests for clarification, or comments that are open-ended.

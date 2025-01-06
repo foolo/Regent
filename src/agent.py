@@ -1,6 +1,7 @@
 from datetime import datetime
 import json
 import logging
+import random
 import time
 import praw
 import praw.models
@@ -77,8 +78,13 @@ def select_and_handle_comment(reddit: praw.Reddit, agent_info: AgentInfo, provid
 		logger.info("No comment for handling found")
 
 
+def select_subreddit(agent_info: AgentInfo) -> str:
+	return random.choice(agent_info.active_on_subreddits)
+
+
 def create_submission(reddit: praw.Reddit, agent_info: AgentInfo, provider: BaseProvider, interactive: bool):
-	prompt = "Generate a reddit submission. " + agent_info.behavior.submission_style
+	subreddit = select_subreddit(agent_info)
+	prompt = f"Generate a reddit submission for the r/{subreddit} subreddit. " + agent_info.behavior.submission_style
 	system_prompt = agent_info.agent_description
 	logger.info("System prompt:")
 	logger.info(system_prompt)
@@ -90,9 +96,9 @@ def create_submission(reddit: praw.Reddit, agent_info: AgentInfo, provider: Base
 		return
 	logger.info("Response:")
 	logger.info(response)
-	if not interactive or input(f"Post submission to {agent_info.active_subreddit}? (y/n): ") == "y":
+	if not interactive or input(f"Post submission to {subreddit}? (y/n): ") == "y":
 		logger.info("Posting submission...")
-		reddit.subreddit(agent_info.active_subreddit).submit(response.title, selftext=response.selftext)
+		reddit.subreddit(subreddit).submit(response.title, selftext=response.selftext)
 		logger.info("Submission posted")
 
 
@@ -114,7 +120,7 @@ def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: praw.Reddit
 	while True:
 		if interactive:
 			print('Commands:')
-			print("  l=List posts, cs=Create a submission, i=Show inbox, c=Handle comment, d=Default iteration")
+			print("  cs=Create a submission, i=Show inbox, c=Handle comment, d=Default iteration")
 			print("Enter command:")
 			command = input()
 		else:
@@ -132,10 +138,6 @@ def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: praw.Reddit
 					print(f"Comment from: {item.author}, Comment: {item.body}")
 				elif isinstance(item, praw.models.Message):
 					print(f"Message from: {item.author}, Subject: {item.subject}, Message: {item.body}")
-		elif command == "l":
-			print(f'Listing posts from subreddit: {agent_info.active_subreddit}')
-			for submission in reddit.subreddit(agent_info.active_subreddit).new(limit=10):
-				print(submission.title)
 		elif command == "cs":
 			create_submission(reddit, agent_info, provider, interactive)
 		else:
