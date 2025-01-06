@@ -13,3 +13,4 @@ behavior:
   reply_style: >-
     The reply, if reeded, should be thoughtful and engaging and at most 500 characters long.
   minimum_comment_age_minutes: 10 # don't reply to comments until they are at least 10 minutes old
+  minimum_time_between_submissions_hours: 12 # don't post new submissions until at least 12 hour has passed

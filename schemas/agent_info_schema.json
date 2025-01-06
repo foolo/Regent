@@ -28,7 +28,8 @@
 			"required": [
 				"reply_needed_classification",
 				"reply_style",
-				"minimum_comment_age_minutes"
+				"minimum_comment_age_minutes",
+				"minimum_time_between_submissions_hours"
 			],
 			"properties": {
 				"reply_needed_classification": {
@@ -42,6 +43,10 @@
 				"minimum_comment_age_minutes": {
 					"type": "integer",
 					"description": "The minimum age of a comment in minutes before the agent will reply to it."
+				},
+				"minimum_time_between_submissions_hours": {
+					"type": "integer",
+					"description": "The minimum time since the agent's last submission in hours before it will make another submission."
 				}
 			}
 		}

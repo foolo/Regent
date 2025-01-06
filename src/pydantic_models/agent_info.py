@@ -16,6 +16,10 @@ class Behavior(BaseModel):
         ...,
         description='The minimum age of a comment in minutes before the agent will reply to it.',
     )
+    minimum_time_between_submissions_hours: int = Field(
+        ...,
+        description="The minimum time since the agent's last submission in hours before it will make another submission.",
+    )
 
 
 class AgentInfo(BaseModel):

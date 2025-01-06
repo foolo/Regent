@@ -1,3 +1,4 @@
+from datetime import datetime
 import json
 import logging
 import time
@@ -90,13 +91,30 @@ def create_submission(reddit: praw.Reddit, agent_info: AgentInfo, provider: Base
 		logger.info("Submission posted")
 
 
+def get_latest_submission(current_user: praw.models.Redditor) -> praw.models.Submission | None:
+	return next(current_user.submissions.new(limit=1))
+
+
+def create_submission_if_time(reddit: praw.Reddit, agent_info: AgentInfo, provider: BaseProvider):
+	current_user = get_current_user(reddit)
+	latest_submission = get_latest_submission(current_user)
+	current_utc = int(time.time())
+	if not latest_submission or current_utc > latest_submission.created_utc + agent_info.behavior.minimum_time_between_submissions_hours * 3600:
+		create_submission(reddit, agent_info, provider)
+	else:
+		logger.info(f"Not enough time has passed since the last submission, which was posted {datetime.fromtimestamp(latest_submission.created_utc)}")
+
+
 def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: praw.Reddit):
 	while True:
 		print('Commands:')
-		print("  l=List posts, cs=Create a submission, i=Show inbox, c=Handle comment")
+		print("  l=List posts, cs=Create a submission, i=Show inbox, c=Handle comment, d=Default iteration")
 		print("Enter command:")
 		command = input()
-		if command == "c":
+		if command == "d":
+			select_and_handle_comment(reddit, agent_info, provider)
+			create_submission_if_time(reddit, agent_info, provider)
+		elif command == "c":
 			select_and_handle_comment(reddit, agent_info, provider)
 		elif command == "i":
 			print("Inbox:")
