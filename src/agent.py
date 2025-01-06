@@ -60,6 +60,19 @@ def handle_comment(item: praw.models.Comment, reddit: praw.Reddit, agent_info: A
 			logger.info("Reply posted")
 
 
+def select_and_handle_comment(reddit: praw.Reddit, agent_info: AgentInfo, provider: BaseProvider):
+	current_user = reddit.user.me()
+	if not current_user:
+		logger.warning("No user logged in")
+		return
+	username = current_user.name
+	item = select_comment(reddit, agent_info)
+	if item:
+		handle_comment(item, reddit, agent_info, provider, username)
+	else:
+		logger.info("No comment for handling found")
+
+
 def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: praw.Reddit):
 	while True:
 		print('Commands:')
@@ -67,16 +80,7 @@ def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: praw.Reddit
 		print("Enter command:")
 		command = input()
 		if command == "c":
-			current_user = reddit.user.me()
-			if not current_user:
-				logger.warning("No user logged in")
-				continue
-			username = current_user.name
-			item = select_comment(reddit, agent_info)
-			if item:
-				handle_comment(item, reddit, agent_info, provider, username)
-			else:
-				logger.info("No comment for handling found")
+			select_and_handle_comment(reddit, agent_info, provider)
 		elif command == "i":
 			print("Inbox:")
 			for item in reddit.inbox.unread(limit=None):  # type: ignore
