@@ -6,7 +6,10 @@ agent_description: >-
   When people are negative about apples, you try to ask them why
   and provide them with information to change their minds, but always in a friendly way.
 active_on_subreddits:
-  - test
+  - name: test
+    submission_instructions: Make short submissions and comments. Two sentences are enough. Mention that this is test content.
+  - name: sandboxtest
+#   submission_instructions: Always mention other fruits in the submissions.
 behavior:
   reply_needed_classification: >-
     Some examples of comments that require a reply are questions, requests for clarification, or comments that are open-ended.

@@ -8,7 +8,7 @@ import praw.models
 from src.reddit_utils import get_comment_chain
 import praw.models
 from src.providers.base_provider import BaseProvider
-from src.pydantic_models.agent_info import AgentInfo
+from src.pydantic_models.agent_info import ActiveOnSubreddit, AgentInfo
 
 logger = logging.getLogger(__name__)
 
@@ -78,13 +78,15 @@ def select_and_handle_comment(reddit: praw.Reddit, agent_info: AgentInfo, provid
 		logger.info("No comment for handling found")
 
 
-def select_subreddit(agent_info: AgentInfo) -> str:
+def select_subreddit(agent_info: AgentInfo) -> ActiveOnSubreddit:
 	return random.choice(agent_info.active_on_subreddits)
 
 
 def create_submission(reddit: praw.Reddit, agent_info: AgentInfo, provider: BaseProvider, interactive: bool):
 	subreddit = select_subreddit(agent_info)
-	prompt = f"Generate a reddit submission for the r/{subreddit} subreddit. " + agent_info.behavior.submission_style
+	prompt = f"Generate a reddit submission for the r/{subreddit.name} subreddit. " + agent_info.behavior.submission_style
+	if subreddit.submission_instructions:
+		prompt += "\n" + subreddit.submission_instructions
 	system_prompt = agent_info.agent_description
 	logger.info("System prompt:")
 	logger.info(system_prompt)
@@ -98,7 +100,7 @@ def create_submission(reddit: praw.Reddit, agent_info: AgentInfo, provider: Base
 	logger.info(response)
 	if not interactive or input(f"Post submission to {subreddit}? (y/n): ") == "y":
 		logger.info("Posting submission...")
-		reddit.subreddit(subreddit).submit(response.title, selftext=response.selftext)
+		reddit.subreddit(subreddit.name).submit(response.title, selftext=response.selftext)
 		logger.info("Submission posted")
 
 

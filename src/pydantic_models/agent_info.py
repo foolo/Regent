@@ -3,9 +3,17 @@
 
 from __future__ import annotations
 
-from typing import List
+from typing import List, Optional
 
 from pydantic import BaseModel, Field
+
+
+class ActiveOnSubreddit(BaseModel):
+    name: str = Field(..., description='The name of the subreddit')
+    submission_instructions: Optional[str] = Field(
+        None,
+        description='Instructions for the agent on how to make submissions to the subreddit',
+    )
 
 
 class Behavior(BaseModel):
@@ -30,7 +38,7 @@ class Behavior(BaseModel):
 class AgentInfo(BaseModel):
     name: str = Field(..., description='The name of the agent')
     agent_description: str = Field(..., description='A description of the agent')
-    active_on_subreddits: List[str] = Field(
+    active_on_subreddits: List[ActiveOnSubreddit] = Field(
         ..., description='The subreddits the agent is active on', min_length=1
     )
     behavior: Behavior = Field(..., description='The behavior of the agent')
