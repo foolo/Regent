@@ -48,7 +48,7 @@ def handle_comment(item: praw.models.Comment, reddit: praw.Reddit, agent_info: A
 	system_prompt += agent_info.behavior.reply_style + "\n"
 
 	prompt = "The conversation is as follows: \n" + json.dumps(conversation_struct, indent=1)
-	logger.info("System Prompt:")
+	logger.info("System prompt:")
 	logger.info(system_prompt)
 	logger.info("Prompt:")
 	logger.info(prompt)
@@ -80,6 +80,10 @@ def select_and_handle_comment(reddit: praw.Reddit, agent_info: AgentInfo, provid
 def create_submission(reddit: praw.Reddit, agent_info: AgentInfo, provider: BaseProvider, interactive: bool):
 	prompt = "Generate an engaging reddit submission. Use at most 500 characters. Avoid emojis and hashtags."
 	system_prompt = agent_info.agent_description
+	logger.info("System prompt:")
+	logger.info(system_prompt)
+	logger.info("Prompt:")
+	logger.info(prompt)
 	response = provider.generate_submission(system_prompt, prompt)
 	if response is None:
 		logger.error("Failed to generate a response")
