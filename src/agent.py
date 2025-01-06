@@ -66,6 +66,7 @@ def handle_comment(item: praw.models.Comment, reddit: praw.Reddit, agent_info: A
 			logger.info("Posting reply...")
 			comments[-1].reply(response.body)
 			logger.info("Reply posted")
+	item.mark_read()
 
 
 def select_and_handle_comment(reddit: praw.Reddit, agent_info: AgentInfo, provider: BaseProvider):
