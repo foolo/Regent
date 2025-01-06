@@ -49,6 +49,7 @@ def run():
 	parser.add_argument("agent_schema", type=argparse.FileType('r'))
 	parser.add_argument("provider", type=str)
 	parser.add_argument("--interactive", action="store_true", help="Run the agent in interactive mode, allowing you to confirm before posting.")
+	parser.add_argument("--iteration_interval", type=int, default=60, help="The interval in seconds between agent iterations.")
 	args = parser.parse_args()
 
 	reddit = initialize_reddit()
@@ -73,7 +74,8 @@ def run():
 	logger.info(f'Loaded agent: {agent_info.name}')
 
 	interactive: bool = args.interactive
-	run_agent(agent_info, provider, reddit, interactive)
+	iteration_interval: int = args.iteration_interval
+	run_agent(agent_info, provider, reddit, interactive, iteration_interval)
 
 
 if __name__ == '__main__':

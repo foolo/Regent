@@ -106,7 +106,7 @@ def create_submission_if_time(reddit: praw.Reddit, agent_info: AgentInfo, provid
 		logger.info(f"Not enough time has passed since the last submission, which was posted {datetime.fromtimestamp(latest_submission.created_utc)}")
 
 
-def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: praw.Reddit, interactive: bool):
+def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: praw.Reddit, interactive: bool, iteration_interval: int):
 	while True:
 		if interactive:
 			print('Commands:')
@@ -138,4 +138,4 @@ def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: praw.Reddit
 			print(f"Invalid command: '{command}'")
 
 		if not interactive:
-			time.sleep(60)
+			time.sleep(iteration_interval)
