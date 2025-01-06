@@ -48,6 +48,7 @@ def run():
 	parser = argparse.ArgumentParser()
 	parser.add_argument("agent_schema", type=argparse.FileType('r'))
 	parser.add_argument("provider", type=str)
+	parser.add_argument("--interactive", action="store_true", help="Run the agent in interactive mode, allowing you to confirm before posting.")
 	args = parser.parse_args()
 
 	reddit = initialize_reddit()
@@ -69,9 +70,10 @@ def run():
 	agent_schema_obj = yaml.safe_load(agent_schema)
 
 	agent_info = AgentInfo(**agent_schema_obj)
-
 	logger.info(f'Loaded agent: {agent_info.name}')
-	run_agent(agent_info, provider, reddit)
+
+	interactive: bool = args.interactive
+	run_agent(agent_info, provider, reddit, interactive)
 
 
 if __name__ == '__main__':

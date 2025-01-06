@@ -28,7 +28,7 @@ def select_comment(reddit: praw.Reddit, agent_info: AgentInfo) -> praw.models.Co
 	return None
 
 
-def handle_comment(item: praw.models.Comment, reddit: praw.Reddit, agent_info: AgentInfo, provider: BaseProvider):
+def handle_comment(item: praw.models.Comment, reddit: praw.Reddit, agent_info: AgentInfo, provider: BaseProvider, interactive: bool):
 	logger.info(f"Handle comment from: {item.author}, Comment: {item.body}")
 	root_submission, comments = get_comment_chain(item, reddit)
 	conversation_struct = {}
@@ -62,22 +62,22 @@ def handle_comment(item: praw.models.Comment, reddit: praw.Reddit, agent_info: A
 		if not response.body or response.body == "":
 			logger.warning("Reply needed but no body provided")
 			return
-		if input("Post reply? (y/n): ") == "y":
+		if not interactive or input("Post reply? (y/n): ") == "y":
 			logger.info("Posting reply...")
 			comments[-1].reply(response.body)
 			logger.info("Reply posted")
 	item.mark_read()
 
 
-def select_and_handle_comment(reddit: praw.Reddit, agent_info: AgentInfo, provider: BaseProvider):
+def select_and_handle_comment(reddit: praw.Reddit, agent_info: AgentInfo, provider: BaseProvider, interactive: bool):
 	item = select_comment(reddit, agent_info)
 	if item:
-		handle_comment(item, reddit, agent_info, provider)
+		handle_comment(item, reddit, agent_info, provider, interactive)
 	else:
 		logger.info("No comment for handling found")
 
 
-def create_submission(reddit: praw.Reddit, agent_info: AgentInfo, provider: BaseProvider):
+def create_submission(reddit: praw.Reddit, agent_info: AgentInfo, provider: BaseProvider, interactive: bool):
 	prompt = "Generate an engaging reddit submission. Use at most 500 characters. Avoid emojis and hashtags."
 	system_prompt = agent_info.agent_description
 	response = provider.generate_submission(system_prompt, prompt)
@@ -86,7 +86,7 @@ def create_submission(reddit: praw.Reddit, agent_info: AgentInfo, provider: Base
 		return
 	logger.info("Response:")
 	logger.info(response)
-	if input(f"Post submission to {agent_info.active_subreddit}? (y/n): ") == "y":
+	if not interactive or input(f"Post submission to {agent_info.active_subreddit}? (y/n): ") == "y":
 		logger.info("Posting submission...")
 		reddit.subreddit(agent_info.active_subreddit).submit(response.title, selftext=response.selftext)
 		logger.info("Submission posted")
@@ -96,27 +96,31 @@ def get_latest_submission(current_user: praw.models.Redditor) -> praw.models.Sub
 	return next(current_user.submissions.new(limit=1))
 
 
-def create_submission_if_time(reddit: praw.Reddit, agent_info: AgentInfo, provider: BaseProvider):
+def create_submission_if_time(reddit: praw.Reddit, agent_info: AgentInfo, provider: BaseProvider, interactive: bool):
 	current_user = get_current_user(reddit)
 	latest_submission = get_latest_submission(current_user)
 	current_utc = int(time.time())
 	if not latest_submission or current_utc > latest_submission.created_utc + agent_info.behavior.minimum_time_between_submissions_hours * 3600:
-		create_submission(reddit, agent_info, provider)
+		create_submission(reddit, agent_info, provider, interactive)
 	else:
 		logger.info(f"Not enough time has passed since the last submission, which was posted {datetime.fromtimestamp(latest_submission.created_utc)}")
 
 
-def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: praw.Reddit):
+def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: praw.Reddit, interactive: bool):
 	while True:
-		print('Commands:')
-		print("  l=List posts, cs=Create a submission, i=Show inbox, c=Handle comment, d=Default iteration")
-		print("Enter command:")
-		command = input()
+		if interactive:
+			print('Commands:')
+			print("  l=List posts, cs=Create a submission, i=Show inbox, c=Handle comment, d=Default iteration")
+			print("Enter command:")
+			command = input()
+		else:
+			command = "d"
+
 		if command == "d":
-			select_and_handle_comment(reddit, agent_info, provider)
-			create_submission_if_time(reddit, agent_info, provider)
+			select_and_handle_comment(reddit, agent_info, provider, interactive)
+			create_submission_if_time(reddit, agent_info, provider, interactive)
 		elif command == "c":
-			select_and_handle_comment(reddit, agent_info, provider)
+			select_and_handle_comment(reddit, agent_info, provider, interactive)
 		elif command == "i":
 			print("Inbox:")
 			for item in reddit.inbox.unread(limit=None):  # type: ignore
@@ -129,6 +133,9 @@ def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: praw.Reddit
 			for submission in reddit.subreddit(agent_info.active_subreddit).new(limit=10):
 				print(submission.title)
 		elif command == "cs":
-			create_submission(reddit, agent_info, provider)
+			create_submission(reddit, agent_info, provider, interactive)
 		else:
 			print(f"Invalid command: '{command}'")
+
+		if not interactive:
+			time.sleep(60)
