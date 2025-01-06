@@ -35,25 +35,25 @@ def handle_comment(item: praw.models.Comment, reddit: praw.Reddit, agent_info: A
 	conversation_struct = {}
 	conversation_struct['root_post'] = {'author': root_submission.author.name, 'title': root_submission.title, 'text': root_submission.selftext}
 	conversation_struct['comments'] = [{'author': comment.author.name, 'text': comment.body} for comment in comments]
+	system_prompt = [
+	    agent_info.agent_description + "\n",
+	    f"You are in a conversation on Reddit. The conversation is a chain of comments on the subreddit r/{root_submission.subreddit.display_name}",
+	    f"Your username in the conversation is {get_current_user(reddit).name}.",
+	    f"Your task is to first determine whether the last comment in the conversation requires a reply.",
+	    agent_info.behavior.reply_needed_classification,
+	    "If a reply is needed, set the 'reply_needed' field to true and provide a reply in the 'body' field. Otherwise set the 'reply_needed' field to false and leave the 'body' field undefined.",
+	    agent_info.behavior.reply_style,
+	]
 
-	system_prompt = agent_info.agent_description + "\n\n"
-
-	system_prompt += "You are in a conversation on Reddit. The conversation is a chain of comments on the subreddit r/" + root_submission.subreddit.display_name + ".\n"
-	system_prompt += "Your username in the conversation is " + get_current_user(reddit).name + ".\n"
-	system_prompt += "Your task is to first determine whether the last comment in the conversation requires a reply.\n"
-
-	system_prompt += agent_info.behavior.reply_needed_classification + "\n"
-
-	system_prompt += "If a reply is needed, set the 'reply_needed' field to true and provide a reply in the 'body' field. Otherwise set the 'reply_needed' field to false and leave the 'body' field undefined.\n"
-
-	system_prompt += agent_info.behavior.reply_style + "\n"
-
-	prompt = "The conversation is as follows: \n" + json.dumps(conversation_struct, indent=1)
+	prompt = [
+	    "The conversation is as follows:",
+	    json.dumps(conversation_struct, indent=1),
+	]
 	logger.info("System prompt:")
 	logger.info(system_prompt)
 	logger.info("Prompt:")
 	logger.info(prompt)
-	response = provider.generate_comment(system_prompt, prompt)
+	response = provider.generate_comment("\n".join(system_prompt), "\n".join(prompt))
 	if response is None:
 		logger.warning("Failed to generate a response")
 		return
@@ -84,15 +84,15 @@ def select_subreddit(agent_info: AgentInfo) -> ActiveOnSubreddit:
 
 def create_submission(reddit: praw.Reddit, agent_info: AgentInfo, provider: BaseProvider, interactive: bool):
 	subreddit = select_subreddit(agent_info)
-	prompt = f"Generate a reddit submission for the r/{subreddit.name} subreddit. " + agent_info.behavior.submission_style
+	prompt = [f"Generate a reddit submission for the r/{subreddit.name} subreddit. " + agent_info.behavior.submission_style]
 	if subreddit.submission_instructions:
-		prompt += "\n" + subreddit.submission_instructions
+		prompt.append(subreddit.submission_instructions)
 	system_prompt = agent_info.agent_description
 	logger.info("System prompt:")
 	logger.info(system_prompt)
 	logger.info("Prompt:")
 	logger.info(prompt)
-	response = provider.generate_submission(system_prompt, prompt)
+	response = provider.generate_submission(system_prompt, "\n".join(prompt))
 	if response is None:
 		logger.error("Failed to generate a response")
 		return
