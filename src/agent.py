@@ -11,6 +11,13 @@ from src.pydantic_models.agent_info import AgentInfo
 logger = logging.getLogger(__name__)
 
 
+def get_current_user(reddit: praw.Reddit) -> praw.models.Redditor:
+	current_user = reddit.user.me()
+	if not current_user:
+		raise RuntimeError("No user logged in")
+	return current_user
+
+
 def select_comment(reddit: praw.Reddit, agent_info: AgentInfo) -> praw.models.Comment | None:
 	for item in reddit.inbox.unread(limit=None):  # type: ignore
 		if isinstance(item, praw.models.Comment):
@@ -20,7 +27,7 @@ def select_comment(reddit: praw.Reddit, agent_info: AgentInfo) -> praw.models.Co
 	return None
 
 
-def handle_comment(item: praw.models.Comment, reddit: praw.Reddit, agent_info: AgentInfo, provider: BaseProvider, username: str):
+def handle_comment(item: praw.models.Comment, reddit: praw.Reddit, agent_info: AgentInfo, provider: BaseProvider):
 	logger.info(f"Handle comment from: {item.author}, Comment: {item.body}")
 	root_submission, comments = get_comment_chain(item, reddit)
 	conversation_struct = {}
@@ -30,7 +37,7 @@ def handle_comment(item: praw.models.Comment, reddit: praw.Reddit, agent_info: A
 	system_prompt = agent_info.agent_description + "\n\n"
 
 	system_prompt += "You are in a conversation on Reddit. The conversation is a chain of comments on the subreddit r/" + root_submission.subreddit.display_name + ".\n"
-	system_prompt += "Your username in the conversation is " + username + ".\n"
+	system_prompt += "Your username in the conversation is " + get_current_user(reddit).name + ".\n"
 	system_prompt += "Your task is to first determine whether the last comment in the conversation requires a reply.\n"
 
 	system_prompt += agent_info.behavior.reply_needed_classification + "\n"
@@ -61,14 +68,9 @@ def handle_comment(item: praw.models.Comment, reddit: praw.Reddit, agent_info: A
 
 
 def select_and_handle_comment(reddit: praw.Reddit, agent_info: AgentInfo, provider: BaseProvider):
-	current_user = reddit.user.me()
-	if not current_user:
-		logger.warning("No user logged in")
-		return
-	username = current_user.name
 	item = select_comment(reddit, agent_info)
 	if item:
-		handle_comment(item, reddit, agent_info, provider, username)
+		handle_comment(item, reddit, agent_info, provider)
 	else:
 		logger.info("No comment for handling found")
 
