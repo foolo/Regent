@@ -206,7 +206,7 @@ def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: Reddit, int
 					print(f"Comment from: {item.author}, Comment: {item.body}")
 				elif isinstance(item, Message):
 					print(f"Message from: {item.author}, Subject: {item.subject}, Message: {item.body}")
-		elif command == "cs":
+		elif command == "p":
 			create_submission(reddit, agent_info, provider, interactive)
 		else:
 			print(f"Invalid command: '{command}'")
