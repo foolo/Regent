@@ -30,12 +30,18 @@ def select_comment(reddit: praw.Reddit, agent_info: AgentInfo) -> praw.models.Co
 	return None
 
 
+def get_author_name(item: praw.models.Comment | praw.models.Submission) -> str:
+	if not item.author:
+		return "[unknown/deleted]"
+	return item.author.name
+
+
 def handle_comment(item: praw.models.Comment, reddit: praw.Reddit, agent_info: AgentInfo, provider: BaseProvider, interactive: bool):
 	logger.info(f"Handle comment from: {item.author}, Comment: {item.body}")
 	root_submission, comments = get_comment_chain(item, reddit)
 	conversation_struct = {}
-	conversation_struct['root_post'] = {'author': root_submission.author.name, 'title': root_submission.title, 'text': root_submission.selftext}
-	conversation_struct['comments'] = [{'author': comment.author.name, 'text': comment.body} for comment in comments]
+	conversation_struct['root_post'] = {'author': get_author_name(root_submission), 'title': root_submission.title, 'text': root_submission.selftext}
+	conversation_struct['comments'] = [{'author': get_author_name(comment), 'text': comment.body} for comment in comments]
 	system_prompt = [
 	    agent_info.agent_description + "\n",
 	    f"You are in a conversation on Reddit. The conversation is a chain of comments on the subreddit r/{root_submission.subreddit.display_name}",
@@ -134,7 +140,7 @@ def handle_submissions(reddit: praw.Reddit, subreddits: list[str], agent_info: A
 		prompt = [
 		    "The submission is as follows:",
 		    json.dumps({
-		        'author': s.author.name,
+		        'author': get_author_name(s.author.name),
 		        'title': s.title,
 		        'text': s.selftext
 		    }, indent=1),
