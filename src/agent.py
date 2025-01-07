@@ -51,7 +51,7 @@ def handle_comment(item: Comment, reddit: Reddit, agent_info: AgentInfo, provide
 	    agent_info.agent_description + "\n",
 	    f"You are in a conversation on Reddit. The conversation is a chain of comments on the subreddit r/{root_submission.subreddit.display_name}",
 	    f"Your username in the conversation is {get_current_user(reddit).name}.",
-	    f"Your task is to first determine whether the last comment in the conversation requires a reply.",
+	    f"Your task is to first determine whether the last comment in the conversation needs a reply.",
 	    agent_info.behavior.comment_reply_needed_classification,
 	    "If a reply is needed, set the 'reply_needed' field to true and provide a reply in the 'body' field. Otherwise set the 'reply_needed' field to false and leave the 'body' field undefined.",
 	    agent_info.behavior.reply_style,
@@ -136,7 +136,7 @@ def handle_submissions(reddit: Reddit, subreddits: list[str], agent_info: AgentI
 		system_prompt = [
 		    agent_info.agent_description + "\n",
 		    f"You are looking at a post on Reddit, in the subreddit r/{s.subreddit.display_name}",
-		    f"Your task is to first determine whether the post requires a reply.",
+		    f"Your task is to first determine whether the post needs a reply.",
 		    agent_info.behavior.post_reply_needed_classification,
 		    "If a reply is needed, set the 'reply_needed' field to true and provide a reply in the 'body' field. Otherwise set the 'reply_needed' field to false and leave the 'body' field undefined.",
 		    agent_info.behavior.reply_style,
