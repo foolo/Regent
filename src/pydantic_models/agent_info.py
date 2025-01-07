@@ -10,9 +10,9 @@ from pydantic import BaseModel, Field
 
 class ActiveOnSubreddit(BaseModel):
     name: str = Field(..., description='The name of the subreddit')
-    submission_instructions: Optional[str] = Field(
+    post_instructions: Optional[str] = Field(
         None,
-        description='Instructions for the agent on how to make submissions to the subreddit',
+        description='Instructions for the agent on how to make posts to the subreddit',
     )
 
 
@@ -21,21 +21,19 @@ class Behavior(BaseModel):
         ...,
         description='Explain what kinds of comments the agent should reply to, and what kinds it should ignore.',
     )
-    submission_reply_needed_classification: str = Field(
+    post_reply_needed_classification: str = Field(
         ...,
-        description='Explain what kinds of submissions the agent should reply to, and what kinds it should ignore.',
+        description='Explain what kinds of posts the agent should reply to, and what kinds it should ignore.',
     )
     reply_style: str = Field(..., description="The style of the agent's replies.")
-    submission_style: str = Field(
-        ..., description="The style of the agent's submissions."
-    )
+    post_style: str = Field(..., description="The style of the agent's posts.")
     reply_delay: int = Field(
         ...,
         description='The minimum time in minutes before the agent will reply to a comment.',
     )
-    minimum_time_between_submissions_hours: int = Field(
+    minimum_time_between_posts_hours: int = Field(
         ...,
-        description="The minimum time since the agent's last submission in hours before it will make another submission.",
+        description="The minimum time since the agent's last posts in hours before it will make another post.",
     )
 
 

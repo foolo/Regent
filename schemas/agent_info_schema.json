@@ -31,9 +31,9 @@
 						"type": "string",
 						"description": "The name of the subreddit"
 					},
-					"submission_instructions": {
+					"post_instructions": {
 						"type": "string",
-						"description": "Instructions for the agent on how to make submissions to the subreddit"
+						"description": "Instructions for the agent on how to make posts to the subreddit"
 					}
 				}
 			},
@@ -44,36 +44,36 @@
 			"description": "The behavior of the agent",
 			"required": [
 				"comment_reply_needed_classification",
-				"submission_reply_needed_classification",
+				"post_reply_needed_classification",
 				"reply_style",
-				"submission_style",
+				"post_style",
 				"reply_delay",
-				"minimum_time_between_submissions_hours"
+				"minimum_time_between_posts_hours"
 			],
 			"properties": {
 				"comment_reply_needed_classification": {
 					"type": "string",
 					"description": "Explain what kinds of comments the agent should reply to, and what kinds it should ignore."
 				},
-				"submission_reply_needed_classification": {
+				"post_reply_needed_classification": {
 					"type": "string",
-					"description": "Explain what kinds of submissions the agent should reply to, and what kinds it should ignore."
+					"description": "Explain what kinds of posts the agent should reply to, and what kinds it should ignore."
 				},
 				"reply_style": {
 					"type": "string",
 					"description": "The style of the agent's replies."
 				},
-				"submission_style": {
+				"post_style": {
 					"type": "string",
-					"description": "The style of the agent's submissions."
+					"description": "The style of the agent's posts."
 				},
 				"reply_delay": {
 					"type": "integer",
 					"description": "The minimum time in minutes before the agent will reply to a comment."
 				},
-				"minimum_time_between_submissions_hours": {
+				"minimum_time_between_posts_hours": {
 					"type": "integer",
-					"description": "The minimum time since the agent's last submission in hours before it will make another submission."
+					"description": "The minimum time since the agent's last posts in hours before it will make another post."
 				}
 			}
 		}

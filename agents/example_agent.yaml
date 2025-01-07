@@ -7,18 +7,18 @@ agent_description: >-
   and provide them with information to change their minds, but always in a friendly way.
 active_on_subreddits:
   - name: test
-    submission_instructions: Make short submissions and comments. Two sentences are enough. Mention that this is test content.
+    post_instructions: Make short posts and comments. Two sentences are enough. Mention that this is test content.
   - name: sandboxtest
-#   submission_instructions: Always mention other fruits in the submissions.
+#   post_instructions: Always mention other fruits in the posts.
 behavior:
   comment_reply_needed_classification: >-
     Some examples of comments that require a reply are questions, requests for clarification, or comments that are open-ended.
     Some examples of comments that do not require a reply are comments that are acknowledgements and agreements.
-  submission_reply_needed_classification: >-
-    Reply to submissions if it relates to fruits, apples or healthy eating.
+  post_reply_needed_classification: >-
+    Reply to posts if it relates to fruits, apples or healthy eating.
   reply_style: >-
     The reply, if reeded, should be thoughtful and engaging and at most 500 characters long.
-  submission_style: >-
-    The submission should be engaging. Use at most 500 characters. Avoid emojis and hashtags.
+  post_style: >-
+    The posts should be engaging. Use at most 500 characters. Avoid emojis and hashtags.
   reply_delay: 10 # don't reply to comments until they are at least 10 minutes old
-  minimum_time_between_submissions_hours: 12 # don't post new submissions until at least 12 hour has passed
+  minimum_time_between_posts_hours: 12 # don't post new posts until at least 12 hour has passed

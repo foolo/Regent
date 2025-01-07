@@ -97,9 +97,9 @@ def select_subreddit(agent_info: AgentInfo) -> ActiveOnSubreddit:
 
 def create_submission(reddit: praw.Reddit, agent_info: AgentInfo, provider: BaseProvider, interactive: bool):
 	subreddit = select_subreddit(agent_info)
-	prompt = [f"Generate a reddit submission for the r/{subreddit.name} subreddit. " + agent_info.behavior.submission_style]
-	if subreddit.submission_instructions:
-		prompt.append(subreddit.submission_instructions)
+	prompt = [f"Generate a reddit post for the r/{subreddit.name} subreddit. " + agent_info.behavior.post_style]
+	if subreddit.post_instructions:
+		prompt.append(subreddit.post_instructions)
 	system_prompt = agent_info.agent_description
 	logger.info("System prompt:")
 	logger.info(system_prompt)
@@ -111,10 +111,10 @@ def create_submission(reddit: praw.Reddit, agent_info: AgentInfo, provider: Base
 		return
 	logger.info("Response:")
 	logger.info(response)
-	if not interactive or input(f"Post submission to {subreddit}? (y/n): ") == "y":
-		logger.info("Posting submission...")
+	if not interactive or input(f"Publish post to {subreddit}? (y/n): ") == "y":
+		logger.info("Publishing post...")
 		reddit.subreddit(subreddit.name).submit(response.title, selftext=response.selftext)
-		logger.info("Submission posted")
+		logger.info("Post published")
 
 
 def get_latest_submission(current_user: praw.models.Redditor) -> praw.models.Submission | None:
@@ -125,26 +125,26 @@ def create_submission_if_time(reddit: praw.Reddit, agent_info: AgentInfo, provid
 	current_user = get_current_user(reddit)
 	latest_submission = get_latest_submission(current_user)
 	current_utc = int(time.time())
-	if not latest_submission or current_utc > latest_submission.created_utc + agent_info.behavior.minimum_time_between_submissions_hours * 3600:
+	if not latest_submission or current_utc > latest_submission.created_utc + agent_info.behavior.minimum_time_between_posts_hours * 3600:
 		create_submission(reddit, agent_info, provider, interactive)
 	else:
-		logger.info(f"Not enough time has passed since the last submission, which was posted {datetime.fromtimestamp(latest_submission.created_utc)}")
+		logger.info(f"Not enough time has passed since the last post, which was published {datetime.fromtimestamp(latest_submission.created_utc)}")
 
 
 def handle_submissions(reddit: praw.Reddit, subreddits: list[str], agent_info: AgentInfo, provider: BaseProvider):
 	def handle_submission(s: praw.models.Submission):
-		logger.info(f"Handle submission from: {s.author}, Title: {s.title}, Text: {s.selftext}")
+		logger.info(f"Handle post from: {s.author}, Title: {s.title}, Text: {s.selftext}")
 		system_prompt = [
 		    agent_info.agent_description + "\n",
-		    f"You are looking at a submission on Reddit, in the subreddit r/{s.subreddit.display_name}",
-		    f"Your task is to first determine whether the submission requires a reply.",
-		    agent_info.behavior.submission_reply_needed_classification,
+		    f"You are looking at a post on Reddit, in the subreddit r/{s.subreddit.display_name}",
+		    f"Your task is to first determine whether the post requires a reply.",
+		    agent_info.behavior.post_reply_needed_classification,
 		    "If a reply is needed, set the 'reply_needed' field to true and provide a reply in the 'body' field. Otherwise set the 'reply_needed' field to false and leave the 'body' field undefined.",
 		    agent_info.behavior.reply_style,
 		]
 
 		prompt = [
-		    "The submission is as follows:",
+		    "The post is as follows:",
 		    json.dumps({
 		        'author': get_author_name(s.author.name),
 		        'title': s.title,
@@ -175,7 +175,7 @@ def handle_submissions(reddit: praw.Reddit, subreddits: list[str], agent_info: A
 	print(f"Monitoring subreddit: {subreddit.display_name}")
 	for s in subreddit.stream.submissions(skip_existing=True):
 		if s.author == get_current_user(reddit):
-			print(f"Skipping own submission: {s.title}")
+			print(f"Skipping own post: {s.title}")
 		else:
 			threading.Thread(target=handle_submission, args=(s, )).start()
 
@@ -187,7 +187,7 @@ def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: praw.Reddit
 	while True:
 		if interactive:
 			print('Commands:')
-			print("  cs=Create a submission, i=Show inbox, c=Handle comment, d=Default iteration")
+			print("  p=Create a post, i=Show inbox, c=Handle comment, d=Default iteration")
 			print("Enter command:")
 			command = input()
 		else:
