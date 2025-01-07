@@ -24,6 +24,12 @@ def get_current_user(reddit: praw.Reddit) -> praw.models.Redditor:
 def select_comment(reddit: praw.Reddit, agent_info: AgentInfo) -> praw.models.Comment | None:
 	for item in reddit.inbox.unread(limit=None):  # type: ignore
 		if isinstance(item, praw.models.Comment):
+			if not item.author:
+				logger.info("Skipping comment from deleted user")
+				continue
+			if item.author == get_current_user(reddit):
+				logger.info("Skipping own comment")
+				continue
 			current_utc = int(time.time())
 			if current_utc - item.created_utc > agent_info.behavior.reply_delay * 60:
 				return item
