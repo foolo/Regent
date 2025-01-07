@@ -27,7 +27,7 @@ class Behavior(BaseModel):
     )
     reply_style: str = Field(..., description="The style of the agent's replies.")
     post_style: str = Field(..., description="The style of the agent's posts.")
-    reply_delay: int = Field(
+    reply_delay_minutes: int = Field(
         ...,
         description='The minimum time in minutes before the agent will reply to a comment.',
     )

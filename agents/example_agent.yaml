@@ -20,5 +20,5 @@ behavior:
     The reply, if reeded, should be thoughtful and engaging and at most 500 characters long.
   post_style: >-
     The posts should be engaging. Use at most 500 characters. Avoid emojis and hashtags.
-  reply_delay: 10 # don't reply to comments until they are at least 10 minutes old
+  reply_delay_minutes: 10 # don't reply to comments until they are at least 10 minutes old
   minimum_time_between_posts_hours: 12 # don't post new posts until at least 12 hour has passed

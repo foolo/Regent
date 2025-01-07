@@ -30,7 +30,7 @@ def select_comment(reddit: Reddit, agent_info: AgentInfo) -> Comment | None:
 				logger.info("Skipping own comment")
 				continue
 			current_utc = int(time.time())
-			if current_utc - item.created_utc > agent_info.behavior.reply_delay * 60:
+			if current_utc - item.created_utc > agent_info.behavior.reply_delay_minutes * 60:
 				return item
 	return None
 
@@ -164,7 +164,7 @@ def handle_submissions(reddit: Reddit, subreddits: list[str], agent_info: AgentI
 			if not response.body or response.body == "":
 				logger.error("Reply needed but no body provided")
 				return
-			delay_seconds = agent_info.behavior.reply_delay * 60
+			delay_seconds = agent_info.behavior.reply_delay_minutes * 60
 			logger.info(f"Posting reply in {delay_seconds} seconds...")
 			time.sleep(delay_seconds)
 			s.reply(response.body)

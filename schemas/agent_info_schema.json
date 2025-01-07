@@ -47,7 +47,7 @@
 				"post_reply_needed_classification",
 				"reply_style",
 				"post_style",
-				"reply_delay",
+				"reply_delay_minutes",
 				"minimum_time_between_posts_hours"
 			],
 			"properties": {
@@ -67,7 +67,7 @@
 					"type": "string",
 					"description": "The style of the agent's posts."
 				},
-				"reply_delay": {
+				"reply_delay_minutes": {
 					"type": "integer",
 					"description": "The minimum time in minutes before the agent will reply to a comment."
 				},
