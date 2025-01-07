@@ -55,13 +55,13 @@ def handle_comment(item: praw.models.Comment, reddit: praw.Reddit, agent_info: A
 	logger.info(prompt)
 	response = provider.generate_comment("\n".join(system_prompt), "\n".join(prompt))
 	if response is None:
-		logger.warning("Failed to generate a response")
+		logger.error("Failed to generate a response")
 		return
 	logger.info(f"Response:")
 	logger.info(response)
 	if response.reply_needed:
 		if not response.body or response.body == "":
-			logger.warning("Reply needed but no body provided")
+			logger.error("Reply needed but no body provided")
 			return
 		if not interactive or input("Post reply? (y/n): ") == "y":
 			logger.info("Posting reply...")
