@@ -11,12 +11,14 @@ active_on_subreddits:
   - name: sandboxtest
 #   submission_instructions: Always mention other fruits in the submissions.
 behavior:
-  reply_needed_classification: >-
+  comment_reply_needed_classification: >-
     Some examples of comments that require a reply are questions, requests for clarification, or comments that are open-ended.
     Some examples of comments that do not require a reply are comments that are acknowledgements and agreements.
+  submission_reply_needed_classification: >-
+    Reply to submissions if it relates to fruits, apples or healthy eating.
   reply_style: >-
     The reply, if reeded, should be thoughtful and engaging and at most 500 characters long.
   submission_style: >-
     The submission should be engaging. Use at most 500 characters. Avoid emojis and hashtags.
-  minimum_comment_age_minutes: 10 # don't reply to comments until they are at least 10 minutes old
+  reply_delay: 10 # don't reply to comments until they are at least 10 minutes old
   minimum_time_between_submissions_hours: 12 # don't post new submissions until at least 12 hour has passed

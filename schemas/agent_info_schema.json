@@ -43,16 +43,21 @@
 			"type": "object",
 			"description": "The behavior of the agent",
 			"required": [
-				"reply_needed_classification",
+				"comment_reply_needed_classification",
+				"submission_reply_needed_classification",
 				"reply_style",
 				"submission_style",
-				"minimum_comment_age_minutes",
+				"reply_delay",
 				"minimum_time_between_submissions_hours"
 			],
 			"properties": {
-				"reply_needed_classification": {
+				"comment_reply_needed_classification": {
 					"type": "string",
 					"description": "Explain what kinds of comments the agent should reply to, and what kinds it should ignore."
+				},
+				"submission_reply_needed_classification": {
+					"type": "string",
+					"description": "Explain what kinds of submissions the agent should reply to, and what kinds it should ignore."
 				},
 				"reply_style": {
 					"type": "string",
@@ -62,9 +67,9 @@
 					"type": "string",
 					"description": "The style of the agent's submissions."
 				},
-				"minimum_comment_age_minutes": {
+				"reply_delay": {
 					"type": "integer",
-					"description": "The minimum age of a comment in minutes before the agent will reply to it."
+					"description": "The minimum time in minutes before the agent will reply to a comment."
 				},
 				"minimum_time_between_submissions_hours": {
 					"type": "integer",

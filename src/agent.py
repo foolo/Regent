@@ -1,12 +1,13 @@
 from datetime import datetime
 import json
 import logging
+import queue
 import random
+import threading
 import time
 import praw
 import praw.models
 from src.reddit_utils import get_comment_chain
-import praw.models
 from src.providers.base_provider import BaseProvider
 from src.pydantic_models.agent_info import ActiveOnSubreddit, AgentInfo
 
@@ -24,7 +25,7 @@ def select_comment(reddit: praw.Reddit, agent_info: AgentInfo) -> praw.models.Co
 	for item in reddit.inbox.unread(limit=None):  # type: ignore
 		if isinstance(item, praw.models.Comment):
 			current_utc = int(time.time())
-			if current_utc - item.created_utc > agent_info.behavior.minimum_comment_age_minutes * 60:
+			if current_utc - item.created_utc > agent_info.behavior.reply_delay * 60:
 				return item
 	return None
 
@@ -40,7 +41,7 @@ def handle_comment(item: praw.models.Comment, reddit: praw.Reddit, agent_info: A
 	    f"You are in a conversation on Reddit. The conversation is a chain of comments on the subreddit r/{root_submission.subreddit.display_name}",
 	    f"Your username in the conversation is {get_current_user(reddit).name}.",
 	    f"Your task is to first determine whether the last comment in the conversation requires a reply.",
-	    agent_info.behavior.reply_needed_classification,
+	    agent_info.behavior.comment_reply_needed_classification,
 	    "If a reply is needed, set the 'reply_needed' field to true and provide a reply in the 'body' field. Otherwise set the 'reply_needed' field to false and leave the 'body' field undefined.",
 	    agent_info.behavior.reply_style,
 	]
@@ -118,7 +119,59 @@ def create_submission_if_time(reddit: praw.Reddit, agent_info: AgentInfo, provid
 		logger.info(f"Not enough time has passed since the last submission, which was posted {datetime.fromtimestamp(latest_submission.created_utc)}")
 
 
+def handle_submissions(reddit: praw.Reddit, subreddits: list[str], agent_info: AgentInfo, provider: BaseProvider):
+	def handle_submission(s: praw.models.Submission):
+		logger.info(f"Handle submission from: {s.author}, Title: {s.title}, Text: {s.selftext}")
+		system_prompt = [
+		    agent_info.agent_description + "\n",
+		    f"You are looking at a submission on Reddit, in the subreddit r/{s.subreddit.display_name}",
+		    f"Your task is to first determine whether the submission requires a reply.",
+		    agent_info.behavior.submission_reply_needed_classification,
+		    "If a reply is needed, set the 'reply_needed' field to true and provide a reply in the 'body' field. Otherwise set the 'reply_needed' field to false and leave the 'body' field undefined.",
+		    agent_info.behavior.reply_style,
+		]
+
+		prompt = [
+		    "The submission is as follows:",
+		    json.dumps({
+		        'author': s.author.name,
+		        'title': s.title,
+		        'text': s.selftext
+		    }, indent=1),
+		]
+		logger.info("System prompt:")
+		logger.info(system_prompt)
+		logger.info("Prompt:")
+		logger.info(prompt)
+		response = provider.generate_comment("\n".join(system_prompt), "\n".join(prompt))
+		if response is None:
+			logger.error("Failed to generate a response")
+			return
+		logger.info(f"Response:")
+		logger.info(response)
+		if response.reply_needed:
+			if not response.body or response.body == "":
+				logger.error("Reply needed but no body provided")
+				return
+			delay_seconds = agent_info.behavior.reply_delay * 60
+			logger.info(f"Posting reply in {delay_seconds} seconds...")
+			time.sleep(delay_seconds)
+			s.reply(response.body)
+			logger.info("Reply posted")
+
+	subreddit = reddit.subreddit("+".join(subreddits))
+	print(f"Monitoring subreddit: {subreddit.display_name}")
+	for s in subreddit.stream.submissions(skip_existing=True):
+		if s.author == get_current_user(reddit):
+			print(f"Skipping own submission: {s.title}")
+		else:
+			threading.Thread(target=handle_submission, args=(s, )).start()
+
+
 def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: praw.Reddit, interactive: bool, iteration_interval: int):
+	subreddits = [subreddit.name for subreddit in agent_info.active_on_subreddits]
+	stream_submissions_thread = threading.Thread(target=handle_submissions, args=(reddit, subreddits, agent_info, provider))
+	stream_submissions_thread.start()
 	while True:
 		if interactive:
 			print('Commands:')
@@ -127,6 +180,8 @@ def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: praw.Reddit
 			command = input()
 		else:
 			command = "d"
+
+		print(f"Running command: {command}")
 
 		if command == "d":
 			select_and_handle_comment(reddit, agent_info, provider, interactive)

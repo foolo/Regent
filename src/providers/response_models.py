@@ -7,6 +7,6 @@ class RedditSubmission(BaseModel):
 	selftext: str
 
 
-class RedditCommentReply(BaseModel):
+class RedditReply(BaseModel):
 	reply_needed: bool
 	body: Optional[str]

@@ -17,17 +17,21 @@ class ActiveOnSubreddit(BaseModel):
 
 
 class Behavior(BaseModel):
-    reply_needed_classification: str = Field(
+    comment_reply_needed_classification: str = Field(
         ...,
         description='Explain what kinds of comments the agent should reply to, and what kinds it should ignore.',
+    )
+    submission_reply_needed_classification: str = Field(
+        ...,
+        description='Explain what kinds of submissions the agent should reply to, and what kinds it should ignore.',
     )
     reply_style: str = Field(..., description="The style of the agent's replies.")
     submission_style: str = Field(
         ..., description="The style of the agent's submissions."
     )
-    minimum_comment_age_minutes: int = Field(
+    reply_delay: int = Field(
         ...,
-        description='The minimum age of a comment in minutes before the agent will reply to it.',
+        description='The minimum time in minutes before the agent will reply to a comment.',
     )
     minimum_time_between_submissions_hours: int = Field(
         ...,
