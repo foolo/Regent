@@ -3,7 +3,7 @@
 import socket
 import sys
 import time
-import praw
+from praw import Reddit
 
 from src.reddit_config_loader import REDDIT_CONFIG_FILENAME, load_reddit_config
 
@@ -16,7 +16,7 @@ def retrieve_refresh_token() -> int:
 	config = load_reddit_config()
 	redirect_host = 'localhost'
 	redirect_port = 8080
-	reddit = praw.Reddit(
+	reddit = Reddit(
 	    client_id=config.client_id,
 	    client_secret=config.client_secret,
 	    user_agent=config.user_agent,

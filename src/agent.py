@@ -1,12 +1,11 @@
 from datetime import datetime
 import json
 import logging
-import queue
 import random
 import threading
 import time
-import praw
-import praw.models
+from praw import Reddit
+from praw.models import Redditor, Comment, Submission, Message
 from src.reddit_utils import get_comment_chain
 from src.providers.base_provider import BaseProvider
 from src.pydantic_models.agent_info import ActiveOnSubreddit, AgentInfo
@@ -14,16 +13,16 @@ from src.pydantic_models.agent_info import ActiveOnSubreddit, AgentInfo
 logger = logging.getLogger(__name__)
 
 
-def get_current_user(reddit: praw.Reddit) -> praw.models.Redditor:
+def get_current_user(reddit: Reddit) -> Redditor:
 	current_user = reddit.user.me()
 	if not current_user:
 		raise RuntimeError("No user logged in")
 	return current_user
 
 
-def select_comment(reddit: praw.Reddit, agent_info: AgentInfo) -> praw.models.Comment | None:
+def select_comment(reddit: Reddit, agent_info: AgentInfo) -> Comment | None:
 	for item in reddit.inbox.unread(limit=None):  # type: ignore
-		if isinstance(item, praw.models.Comment):
+		if isinstance(item, Comment):
 			if not item.author:
 				logger.info("Skipping comment from deleted user")
 				continue
@@ -36,13 +35,13 @@ def select_comment(reddit: praw.Reddit, agent_info: AgentInfo) -> praw.models.Co
 	return None
 
 
-def get_author_name(item: praw.models.Comment | praw.models.Submission) -> str:
+def get_author_name(item: Comment | Submission) -> str:
 	if not item.author:
 		return "[unknown/deleted]"
 	return item.author.name
 
 
-def handle_comment(item: praw.models.Comment, reddit: praw.Reddit, agent_info: AgentInfo, provider: BaseProvider, interactive: bool):
+def handle_comment(item: Comment, reddit: Reddit, agent_info: AgentInfo, provider: BaseProvider, interactive: bool):
 	logger.info(f"Handle comment from: {item.author}, Comment: {item.body}")
 	root_submission, comments = get_comment_chain(item, reddit)
 	conversation_struct = {}
@@ -83,7 +82,7 @@ def handle_comment(item: praw.models.Comment, reddit: praw.Reddit, agent_info: A
 	item.mark_read()
 
 
-def select_and_handle_comment(reddit: praw.Reddit, agent_info: AgentInfo, provider: BaseProvider, interactive: bool):
+def select_and_handle_comment(reddit: Reddit, agent_info: AgentInfo, provider: BaseProvider, interactive: bool):
 	item = select_comment(reddit, agent_info)
 	if item:
 		handle_comment(item, reddit, agent_info, provider, interactive)
@@ -95,7 +94,7 @@ def select_subreddit(agent_info: AgentInfo) -> ActiveOnSubreddit:
 	return random.choice(agent_info.active_on_subreddits)
 
 
-def create_submission(reddit: praw.Reddit, agent_info: AgentInfo, provider: BaseProvider, interactive: bool):
+def create_submission(reddit: Reddit, agent_info: AgentInfo, provider: BaseProvider, interactive: bool):
 	subreddit = select_subreddit(agent_info)
 	prompt = [f"Generate a reddit post for the r/{subreddit.name} subreddit. " + agent_info.behavior.post_style]
 	if subreddit.post_instructions:
@@ -117,11 +116,11 @@ def create_submission(reddit: praw.Reddit, agent_info: AgentInfo, provider: Base
 		logger.info("Post published")
 
 
-def get_latest_submission(current_user: praw.models.Redditor) -> praw.models.Submission | None:
+def get_latest_submission(current_user: Redditor) -> Submission | None:
 	return next(current_user.submissions.new(limit=1))
 
 
-def create_submission_if_time(reddit: praw.Reddit, agent_info: AgentInfo, provider: BaseProvider, interactive: bool):
+def create_submission_if_time(reddit: Reddit, agent_info: AgentInfo, provider: BaseProvider, interactive: bool):
 	current_user = get_current_user(reddit)
 	latest_submission = get_latest_submission(current_user)
 	current_utc = int(time.time())
@@ -131,8 +130,8 @@ def create_submission_if_time(reddit: praw.Reddit, agent_info: AgentInfo, provid
 		logger.info(f"Not enough time has passed since the last post, which was published {datetime.fromtimestamp(latest_submission.created_utc)}")
 
 
-def handle_submissions(reddit: praw.Reddit, subreddits: list[str], agent_info: AgentInfo, provider: BaseProvider):
-	def handle_submission(s: praw.models.Submission):
+def handle_submissions(reddit: Reddit, subreddits: list[str], agent_info: AgentInfo, provider: BaseProvider):
+	def handle_submission(s: Submission):
 		logger.info(f"Handle post from: {s.author}, Title: {s.title}, Text: {s.selftext}")
 		system_prompt = [
 		    agent_info.agent_description + "\n",
@@ -180,7 +179,7 @@ def handle_submissions(reddit: praw.Reddit, subreddits: list[str], agent_info: A
 			threading.Thread(target=handle_submission, args=(s, )).start()
 
 
-def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: praw.Reddit, interactive: bool, iteration_interval: int):
+def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: Reddit, interactive: bool, iteration_interval: int):
 	subreddits = [subreddit.name for subreddit in agent_info.active_on_subreddits]
 	stream_submissions_thread = threading.Thread(target=handle_submissions, args=(reddit, subreddits, agent_info, provider))
 	stream_submissions_thread.start()
@@ -203,9 +202,9 @@ def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: praw.Reddit
 		elif command == "i":
 			print("Inbox:")
 			for item in reddit.inbox.unread(limit=None):  # type: ignore
-				if isinstance(item, praw.models.Comment):
+				if isinstance(item, Comment):
 					print(f"Comment from: {item.author}, Comment: {item.body}")
-				elif isinstance(item, praw.models.Message):
+				elif isinstance(item, Message):
 					print(f"Message from: {item.author}, Subject: {item.subject}, Message: {item.body}")
 		elif command == "cs":
 			create_submission(reddit, agent_info, provider, interactive)

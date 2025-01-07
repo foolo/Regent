@@ -3,8 +3,8 @@ from enum import Enum
 import logging
 import os
 import sys
-import praw
 import yaml
+from praw import Reddit
 
 from src.agent import run_agent
 from src.reddit_config_loader import load_reddit_config
@@ -20,7 +20,7 @@ def initialize_reddit():
 	if not config.refresh_token or config.refresh_token == "":
 		logger.warning("No reddit refresh token found. Run 'python reddit_auth.py' to generate one.")
 		sys.exit(0)
-	reddit = praw.Reddit(
+	reddit = Reddit(
 	    client_id=config.client_id,
 	    client_secret=config.client_secret,
 	    user_agent=config.user_agent,

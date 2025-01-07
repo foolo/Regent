@@ -1,11 +1,11 @@
-import praw
-import praw.models
+from praw import Reddit
+from praw.models import Redditor, Comment, Submission, Message
 
 comment_prefix = 't1_'
 submission_prefix = 't3_'
 
 
-def get_comment_chain(comment: praw.models.Comment, reddit: praw.Reddit) -> tuple[praw.models.Submission, list[praw.models.Comment]]:
+def get_comment_chain(comment: Comment, reddit: Reddit) -> tuple[Submission, list[Comment]]:
 	if comment.parent_id.startswith(comment_prefix):
 		parent_comment = reddit.comment(id=comment.parent_id)
 		root_submission, comments = get_comment_chain(parent_comment, reddit)
