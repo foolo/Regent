@@ -1,6 +1,7 @@
 import logging
+from typing import List
 from openai import OpenAI
-from src.history import History
+from src.pydantic_models.agent_state import HistoryItem
 from src.providers.response_models import Action, RedditReply, RedditSubmission
 from src.providers.base_provider import BaseProvider
 from src.pydantic_models.openai_config import OpenAIConfig
@@ -47,11 +48,11 @@ class OpenAIProvider(BaseProvider):
 		)
 		return completion.choices[0].message.parsed
 
-	def get_action(self, system_prompt: str, initial_prompt: str, history: History) -> Action | None:
+	def get_action(self, system_prompt: str, initial_prompt: str, history: List[HistoryItem]) -> Action | None:
 		messages = []
 		messages.append({"role": 'system', "content": system_prompt})
 		messages.append({"role": 'user', "content": initial_prompt})
-		for turn in history.turns:
+		for turn in history:
 			messages.append({"role": 'assistant', "content": turn.model_action})
 			messages.append({"role": 'user', "content": turn.action_result})
 

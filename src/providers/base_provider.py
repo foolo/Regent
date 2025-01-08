@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
+from typing import List
 
-from src.history import History
 from src.providers.response_models import Action, RedditReply, RedditSubmission
+from src.pydantic_models.agent_state import HistoryItem
 
 
 class BaseProvider(ABC):
@@ -14,5 +15,5 @@ class BaseProvider(ABC):
 		pass
 
 	@abstractmethod
-	def get_action(self, system_prompt: str, initial_prompt: str, history: History) -> Action | None:
+	def get_action(self, system_prompt: str, initial_prompt: str, history: List[HistoryItem]) -> Action | None:
 		pass

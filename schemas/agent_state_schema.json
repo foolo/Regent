@@ -1,0 +1,32 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"description": "Schema for the agent state",
+	"type": "object",
+	"title": "AgentState",
+	"required": [
+		"history"
+	],
+	"properties": {
+		"history": {
+			"type": "string",
+			"description": "Action and result history of the agent",
+			"items": {
+				"type": "object",
+				"required": [
+					"model_action",
+					"action_result"
+				],
+				"properties": {
+					"model_action": {
+						"type": "string",
+						"description": "The action taken by the model"
+					},
+					"action_result": {
+						"type": "string",
+						"description": "The result of the action"
+					}
+				}
+			}
+		}
+	}
+}

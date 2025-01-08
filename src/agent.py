@@ -1,12 +1,13 @@
 from datetime import datetime
 import json
 import logging
+import os
 import threading
 import time
 from praw import Reddit
 from praw.models import Redditor, Comment, Submission
-from src.history import History, HistoryTurn
 from src.providers.response_models import Action, CreateSubmission, MarkCommentAsRead, ReplyToComment, ShowConversationForComment, ShowInbox, ShowUsername
+from src.pydantic_models.agent_state import AgentState, HistoryItem
 from src.reddit_utils import get_comment_chain
 from src.providers.base_provider import BaseProvider
 from src.pydantic_models.agent_info import AgentInfo
@@ -102,7 +103,7 @@ def handle_submissions(reddit: Reddit, subreddits: list[str], agent_info: AgentI
 			threading.Thread(target=handle_submission, args=(s, )).start()
 
 
-def handle_model_action(decision: Action, reddit: Reddit, agent_info: AgentInfo, provider: BaseProvider, history: History) -> dict:
+def handle_model_action(decision: Action, reddit: Reddit, agent_info: AgentInfo, provider: BaseProvider) -> dict:
 	if isinstance(decision.command, ShowInbox):
 		inbox = list_inbox(reddit)
 		return {'inbox': inbox}
@@ -141,7 +142,13 @@ def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: Reddit, int
 	# stream_submissions_thread = threading.Thread(target=handle_submissions, args=(reddit, subreddits, agent_info, provider))
 	# stream_submissions_thread.start()
 
-	history = History()
+	agent_state_filename = 'agent_state.json'
+	if os.path.exists(agent_state_filename):
+		with open(agent_state_filename) as f:
+			whole_file_as_string = f.read()
+			state = AgentState.model_validate_json(whole_file_as_string)
+	else:
+		state = AgentState(history=[])
 
 	initial_prompt = "\n".join([
 	    "To acheive your goals, you can interact with Reddit users by replying to comments, creating posts, and more.",
@@ -167,12 +174,12 @@ def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: Reddit, int
 
 	while True:
 		print("Prompt:")
-		if len(history.turns) == 0:
+		if len(state.history) == 0:
 			print(initial_prompt)
 		else:
-			print(history.turns[-1].action_result)
+			print(state.history[-1].action_result)
 
-		model_action = provider.get_action(system_prompt, initial_prompt, history)
+		model_action = provider.get_action(system_prompt, initial_prompt, state.history)
 		if model_action is None:
 			logger.error("Failed to get action")
 			continue
@@ -182,9 +189,12 @@ def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: Reddit, int
 		print(model_action.model_dump())
 
 		input("Press enter to continue...")
-		action_result = handle_model_action(model_action, reddit, agent_info, provider, history)
+		action_result = handle_model_action(model_action, reddit, agent_info, provider)
 
-		history.turns.append(HistoryTurn(
+		state.history.append(HistoryItem(
 		    model_action=json.dumps(model_action.model_dump()),
 		    action_result=json.dumps(action_result),
 		))
+
+		with open(agent_state_filename, 'w') as f:
+			f.write(state.model_dump_json(indent=2))
