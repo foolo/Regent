@@ -7,7 +7,7 @@ import time
 from praw import Reddit
 from praw.models import Redditor, Comment, Submission, Message
 from src.history import History, HistoryTurn
-from src.providers.response_models import Action, CreateSubmissionCommand, MarkCommentAsReadCommand, ReplyToCommentCommand, ShowConversationForCommentCommand, ShowInboxCommand, ShowUsernameCommand
+from src.providers.response_models import Action, CreateSubmission, MarkCommentAsRead, ReplyToComment, ShowConversationForComment, ShowInbox, ShowUsername
 from src.reddit_utils import get_comment_chain
 from src.providers.base_provider import BaseProvider
 from src.pydantic_models.agent_info import ActiveOnSubreddit, AgentInfo
@@ -104,23 +104,23 @@ def handle_submissions(reddit: Reddit, subreddits: list[str], agent_info: AgentI
 
 
 def handle_model_action(decision: Action, reddit: Reddit, agent_info: AgentInfo, provider: BaseProvider, history: History) -> dict:
-	if isinstance(decision.command, ShowInboxCommand):
+	if isinstance(decision.command, ShowInbox):
 		inbox = list_inbox(reddit)
 		return {'inbox': inbox}
-	elif isinstance(decision.command, ShowUsernameCommand):
+	elif isinstance(decision.command, ShowUsername):
 		return {'username': get_current_user(reddit).name}
-	elif isinstance(decision.command, ReplyToCommentCommand):
+	elif isinstance(decision.command, ReplyToComment):
 		comment = reddit.comment(decision.command.comment_id)
 		comment.reply(decision.command.reply)
 		return {'result': 'Reply posted successfully'}
-	elif isinstance(decision.command, ShowConversationForCommentCommand):
+	elif isinstance(decision.command, ShowConversationForComment):
 		conversation = show_conversation(reddit, decision.command.comment_id)
 		return {'conversation': conversation}
-	elif isinstance(decision.command, MarkCommentAsReadCommand):
+	elif isinstance(decision.command, MarkCommentAsRead):
 		comment = reddit.comment(decision.command.comment_id)
 		comment.mark_read()
 		return {'result': 'Comment marked as read'}
-	elif isinstance(decision.command, CreateSubmissionCommand):
+	elif isinstance(decision.command, CreateSubmission):
 		current_user = get_current_user(reddit)
 		latest_submission = get_latest_submission(current_user)
 		current_utc = int(time.time())
