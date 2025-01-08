@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 def initialize_reddit():
 	config = load_reddit_config()
 	if not config.refresh_token or config.refresh_token == "":
-		logger.warning("No reddit refresh token found. Run 'python reddit_auth.py' to generate one.")
+		logger.warning("No Reddit refresh token found. Run 'python reddit_auth.py' to generate one.")
 		sys.exit(0)
 	reddit = Reddit(
 	    client_id=config.client_id,

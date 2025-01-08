@@ -1,6 +1,6 @@
 {
 	"$schema": "https://json-schema.org/draft/2020-12/schema",
-	"description": "Schema for the reddit config",
+	"description": "Schema for the Reddit config",
 	"type": "object",
 	"title": "OpenAIConfig",
 	"required": [

@@ -1,16 +1,15 @@
 from datetime import datetime
 import json
 import logging
-import random
 import threading
 import time
 from praw import Reddit
-from praw.models import Redditor, Comment, Submission, Message
+from praw.models import Redditor, Comment, Submission
 from src.history import History, HistoryTurn
 from src.providers.response_models import Action, CreateSubmission, MarkCommentAsRead, ReplyToComment, ShowConversationForComment, ShowInbox, ShowUsername
 from src.reddit_utils import get_comment_chain
 from src.providers.base_provider import BaseProvider
-from src.pydantic_models.agent_info import ActiveOnSubreddit, AgentInfo
+from src.pydantic_models.agent_info import AgentInfo
 
 logger = logging.getLogger(__name__)
 

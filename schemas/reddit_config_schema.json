@@ -1,6 +1,6 @@
 {
 	"$schema": "https://json-schema.org/draft/2020-12/schema",
-	"description": "Schema for the reddit config",
+	"description": "Schema for the Reddit config",
 	"type": "object",
 	"title": "RedditConfig",
 	"required": [
@@ -10,19 +10,19 @@
 	"properties": {
 		"client_id": {
 			"type": "string",
-			"description": "The client id of the reddit app"
+			"description": "The client id of the Reddit app"
 		},
 		"client_secret": {
 			"type": "string",
-			"description": "The client secret of the reddit app"
+			"description": "The client secret of the Reddit app"
 		},
 		"refresh_token": {
 			"type": "string",
-			"description": "The refresh token of the reddit app"
+			"description": "The refresh token of the Reddit app"
 		},
 		"user_agent": {
 			"type": "string",
-			"description": "The user agent of the reddit app"
+			"description": "The user agent of the Reddit app"
 		}
 	}
 }
