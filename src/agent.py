@@ -6,6 +6,8 @@ import threading
 import time
 from praw import Reddit
 from praw.models import Redditor, Comment, Submission, Message
+from src.history import History, HistoryTurn
+from src.providers.response_models import ActionDecision, ReplyToCommentCommand, ShowInboxCommand, ShowUsernameCommand
 from src.reddit_utils import get_comment_chain
 from src.providers.base_provider import BaseProvider
 from src.pydantic_models.agent_info import ActiveOnSubreddit, AgentInfo
@@ -39,6 +41,19 @@ def get_author_name(item: Comment | Submission) -> str:
 	if not item.author:
 		return "[unknown/deleted]"
 	return item.author.name
+
+
+def list_inbox(reddit: Reddit) -> list[dict]:
+	inbox = []
+	for item in reddit.inbox.unread(limit=None):  # type: ignore
+		if isinstance(item, Comment):
+			inbox.append({
+			    'type': 'comment',
+			    'id': item.id,
+			    'author': get_author_name(item),
+			    'body': item.body,
+			})
+	return inbox
 
 
 def handle_comment(item: Comment, reddit: Reddit, agent_info: AgentInfo, provider: BaseProvider, interactive: bool):
@@ -179,37 +194,60 @@ def handle_submissions(reddit: Reddit, subreddits: list[str], agent_info: AgentI
 			threading.Thread(target=handle_submission, args=(s, )).start()
 
 
+def handle_model_decision(decision: ActionDecision, reddit: Reddit, agent_info: AgentInfo, provider: BaseProvider, history: History) -> dict:
+	if isinstance(decision.command, ShowInboxCommand):
+		inbox = list_inbox(reddit)
+		return {'inbox': inbox}
+	elif isinstance(decision.command, ShowUsernameCommand):
+		return {'username': get_current_user(reddit).name}
+	elif isinstance(decision.command, ReplyToCommentCommand):
+		comment = reddit.comment(decision.command.comment_id)
+		comment.reply(decision.command.reply)
+		return {'result': 'Reply posted successfully'}
+	else:
+		return {'error': 'Invalid command'}
+
+
 def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: Reddit, interactive: bool, iteration_interval: int):
-	subreddits = [subreddit.name for subreddit in agent_info.active_on_subreddits]
-	stream_submissions_thread = threading.Thread(target=handle_submissions, args=(reddit, subreddits, agent_info, provider))
-	stream_submissions_thread.start()
+	# subreddits = [subreddit.name for subreddit in agent_info.active_on_subreddits]
+	# stream_submissions_thread = threading.Thread(target=handle_submissions, args=(reddit, subreddits, agent_info, provider))
+	# stream_submissions_thread.start()
+
+	history = History()
+
+	initial_user_prompt = [
+	    "To acheive your goals, you can interact with Reddit users by replying to comments, creating posts, and more.",
+	    "Respond with the command and parameters you want to execute. Also provide a motivation behind the action, and any future steps you plan to take, to help keep track of your strategy.",
+	    "You can work in many steps, and the system will remember your previous actions and responses.",
+	    "Only use comment IDs you have received from earlier actions. Don't use random comment IDs. If you don't have any comment IDs, you can use the 'show_inbox' command to get some.",
+	    "",
+	    "Available commands:",
+	    "  show_inbox   # List all unread messages and comments",
+	    "  show_my_username  # Show your username",
+	    "  reply_to_comment COMMENT_ID REPLY  # Reply to a comment with the given ID. You can get the comment IDs from the inbox",
+	]
+	message_to_model = "\n".join(initial_user_prompt)
+
+	system_prompt = agent_info.agent_description
+	print("System prompt:")
+	print(system_prompt)
+
 	while True:
-		if interactive:
-			print('Commands:')
-			print("  p=Create a post, i=Show inbox, c=Handle comment, d=Default iteration")
-			print("Enter command:")
-			command = input()
-		else:
-			command = "d"
+		if isinstance(message_to_model, dict):
+			message_to_model = json.dumps(message_to_model)
 
-		print(f"Running command: {command}")
+		print("User prompt:")
+		print(message_to_model)
+		response = provider.get_action(system_prompt, history, message_to_model)
+		if response is None:
+			logger.error("Failed to get action")
+			continue
 
-		if command == "d":
-			select_and_handle_comment(reddit, agent_info, provider, interactive)
-			create_submission_if_time(reddit, agent_info, provider, interactive)
-		elif command == "c":
-			select_and_handle_comment(reddit, agent_info, provider, interactive)
-		elif command == "i":
-			print("Inbox:")
-			for item in reddit.inbox.unread(limit=None):  # type: ignore
-				if isinstance(item, Comment):
-					print(f"Comment from: {item.author}, Comment: {item.body}")
-				elif isinstance(item, Message):
-					print(f"Message from: {item.author}, Subject: {item.subject}, Message: {item.body}")
-		elif command == "p":
-			create_submission(reddit, agent_info, provider, interactive)
-		else:
-			print(f"Invalid command: '{command}'")
+		history.turns.append(HistoryTurn(user_prompt=message_to_model, response=json.dumps(response.model_dump())))
 
-		if not interactive:
-			time.sleep(iteration_interval)
+		print("")
+		print("Action decision:")
+		print(response.model_dump())
+		message_to_model = handle_model_decision(response, reddit, agent_info, provider, history)
+
+		input("Press enter to continue...")
