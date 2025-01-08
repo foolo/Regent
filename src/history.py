@@ -3,8 +3,8 @@ from dataclasses import dataclass, field
 
 @dataclass
 class HistoryTurn:
-	user_prompt: str
-	response: str
+	model_action: str
+	action_result: str
 
 
 @dataclass

@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 from src.history import History
-from src.providers.response_models import ActionDecision, RedditReply, RedditSubmission
+from src.providers.response_models import Action, RedditReply, RedditSubmission
 
 
 class BaseProvider(ABC):
@@ -14,5 +14,5 @@ class BaseProvider(ABC):
 		pass
 
 	@abstractmethod
-	def get_action(self, system_prompt: str, history: History, prompt: str) -> ActionDecision | None:
+	def get_action(self, system_prompt: str, initial_prompt: str, history: History) -> Action | None:
 		pass

@@ -47,7 +47,7 @@ class CreateSubmissionCommand(BaseModel):
 	selftext: str
 
 
-class ActionDecision(BaseModel):
+class Action(BaseModel):
 	motivation_behind_the_action: str
 	command: ShowInboxCommand | ShowUsernameCommand | ReplyToCommentCommand | ShowConversationForCommentCommand | MarkCommentAsReadCommand | CreateSubmissionCommand
 

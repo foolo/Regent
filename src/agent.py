@@ -7,7 +7,7 @@ import time
 from praw import Reddit
 from praw.models import Redditor, Comment, Submission, Message
 from src.history import History, HistoryTurn
-from src.providers.response_models import ActionDecision, CreateSubmissionCommand, MarkCommentAsReadCommand, ReplyToCommentCommand, ShowConversationForCommentCommand, ShowInboxCommand, ShowUsernameCommand
+from src.providers.response_models import Action, CreateSubmissionCommand, MarkCommentAsReadCommand, ReplyToCommentCommand, ShowConversationForCommentCommand, ShowInboxCommand, ShowUsernameCommand
 from src.reddit_utils import get_comment_chain
 from src.providers.base_provider import BaseProvider
 from src.pydantic_models.agent_info import ActiveOnSubreddit, AgentInfo
@@ -103,7 +103,7 @@ def handle_submissions(reddit: Reddit, subreddits: list[str], agent_info: AgentI
 			threading.Thread(target=handle_submission, args=(s, )).start()
 
 
-def handle_model_decision(decision: ActionDecision, reddit: Reddit, agent_info: AgentInfo, provider: BaseProvider, history: History) -> dict:
+def handle_model_action(decision: Action, reddit: Reddit, agent_info: AgentInfo, provider: BaseProvider, history: History) -> dict:
 	if isinstance(decision.command, ShowInboxCommand):
 		inbox = list_inbox(reddit)
 		return {'inbox': inbox}
@@ -144,7 +144,7 @@ def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: Reddit, int
 
 	history = History()
 
-	initial_user_prompt = [
+	initial_prompt = "\n".join([
 	    "To acheive your goals, you can interact with Reddit users by replying to comments, creating posts, and more.",
 	    "Respond with the command and parameters you want to execute. Also provide a motivation behind the action, and any future steps you plan to take, to help keep track of your strategy.",
 	    "You can work in many steps, and the system will remember your previous actions and responses.",
@@ -158,8 +158,7 @@ def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: Reddit, int
 	    "  show_conversation_for_comment  COMMENT_ID  # Show the conversation from the root post to the comment with the given ID",
 	    "  reply_to_comment COMMENT_ID REPLY  # Reply to a comment with the given ID. You can get the comment IDs from the inbox",
 	    "  create_post SUBREDDIT TITLE TEXT  # Create a post in the given subreddit (excluding 'r/') with the given title and text",
-	]
-	message_to_model = "\n".join(initial_user_prompt)
+	])
 
 	system_prompt = "\n".join([
 	    agent_info.agent_description,
@@ -168,21 +167,25 @@ def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: Reddit, int
 	print(system_prompt)
 
 	while True:
-		if isinstance(message_to_model, dict):
-			message_to_model = json.dumps(message_to_model)
+		print("Prompt:")
+		if len(history.turns) == 0:
+			print(initial_prompt)
+		else:
+			print(history.turns[-1].action_result)
 
-		print("User prompt:")
-		print(message_to_model)
-		response = provider.get_action(system_prompt, history, message_to_model)
-		if response is None:
+		model_action = provider.get_action(system_prompt, initial_prompt, history)
+		if model_action is None:
 			logger.error("Failed to get action")
 			continue
 
-		history.turns.append(HistoryTurn(user_prompt=message_to_model, response=json.dumps(response.model_dump())))
-
 		print("")
-		print(f"Action decision: {response.command.literal}")
-		print(response.model_dump())
-		message_to_model = handle_model_decision(response, reddit, agent_info, provider, history)
+		print(f"Model action: {model_action.command.literal}")
+		print(model_action.model_dump())
 
 		input("Press enter to continue...")
+		action_result = handle_model_action(model_action, reddit, agent_info, provider, history)
+
+		history.turns.append(HistoryTurn(
+		    model_action=json.dumps(model_action.model_dump()),
+		    action_result=json.dumps(action_result),
+		))

@@ -1,7 +1,7 @@
 import logging
 from openai import OpenAI
 from src.history import History
-from src.providers.response_models import ActionDecision, RedditReply, RedditSubmission
+from src.providers.response_models import Action, RedditReply, RedditSubmission
 from src.providers.base_provider import BaseProvider
 from src.pydantic_models.openai_config import OpenAIConfig
 
@@ -47,14 +47,13 @@ class OpenAIProvider(BaseProvider):
 		)
 		return completion.choices[0].message.parsed
 
-	def get_action(self, system_prompt: str, history: History, prompt: str) -> ActionDecision | None:
+	def get_action(self, system_prompt: str, initial_prompt: str, history: History) -> Action | None:
 		messages = []
 		messages.append({"role": 'system', "content": system_prompt})
+		messages.append({"role": 'user', "content": initial_prompt})
 		for turn in history.turns:
-			messages.append({"role": 'user', "content": turn.user_prompt})
-			messages.append({"role": 'assistant', "content": turn.response})
-
-		messages.append({"role": 'user', "content": prompt})
+			messages.append({"role": 'assistant', "content": turn.model_action})
+			messages.append({"role": 'user', "content": turn.action_result})
 
 		for message in messages:
 			logger.debug(f" -- {message['role']}: {message['content']}")
@@ -62,6 +61,6 @@ class OpenAIProvider(BaseProvider):
 		completion = self._client.beta.chat.completions.parse(
 		    model=self._model,
 		    messages=messages,
-		    response_format=ActionDecision,
+		    response_format=Action,
 		)
 		return completion.choices[0].message.parsed
