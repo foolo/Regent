@@ -7,7 +7,7 @@ import time
 from praw import Reddit
 from praw.models import Redditor, Comment, Submission, Message
 from src.history import History, HistoryTurn
-from src.providers.response_models import ActionDecision, MarkCommentAsReadCommand, ReplyToCommentCommand, ShowConversationForCommentCommand, ShowInboxCommand, ShowUsernameCommand
+from src.providers.response_models import ActionDecision, CreateSubmissionCommand, MarkCommentAsReadCommand, ReplyToCommentCommand, ShowConversationForCommentCommand, ShowInboxCommand, ShowUsernameCommand
 from src.reddit_utils import get_comment_chain
 from src.providers.base_provider import BaseProvider
 from src.pydantic_models.agent_info import ActiveOnSubreddit, AgentInfo
@@ -50,44 +50,8 @@ def show_conversation(reddit: Reddit, comment_id: str):
 	return conversation_struct
 
 
-def select_subreddit(agent_info: AgentInfo) -> ActiveOnSubreddit:
-	return random.choice(agent_info.active_on_subreddits)
-
-
-def create_submission(reddit: Reddit, agent_info: AgentInfo, provider: BaseProvider, interactive: bool):
-	subreddit = select_subreddit(agent_info)
-	prompt = [f"Generate a reddit post for the r/{subreddit.name} subreddit. " + agent_info.behavior.post_style]
-	if subreddit.post_instructions:
-		prompt.append(subreddit.post_instructions)
-	system_prompt = agent_info.agent_description
-	logger.info("System prompt:")
-	logger.info(system_prompt)
-	logger.info("Prompt:")
-	logger.info(prompt)
-	response = provider.generate_submission(system_prompt, "\n".join(prompt))
-	if response is None:
-		logger.error("Failed to generate a response")
-		return
-	logger.info("Response:")
-	logger.info(response)
-	if not interactive or input(f"Publish post to {subreddit}? (y/n): ") == "y":
-		logger.info("Publishing post...")
-		reddit.subreddit(subreddit.name).submit(response.title, selftext=response.selftext)
-		logger.info("Post published")
-
-
 def get_latest_submission(current_user: Redditor) -> Submission | None:
 	return next(current_user.submissions.new(limit=1))
-
-
-def create_submission_if_time(reddit: Reddit, agent_info: AgentInfo, provider: BaseProvider, interactive: bool):
-	current_user = get_current_user(reddit)
-	latest_submission = get_latest_submission(current_user)
-	current_utc = int(time.time())
-	if not latest_submission or current_utc > latest_submission.created_utc + agent_info.behavior.minimum_time_between_posts_hours * 3600:
-		create_submission(reddit, agent_info, provider, interactive)
-	else:
-		logger.info(f"Not enough time has passed since the last post, which was published {datetime.fromtimestamp(latest_submission.created_utc)}")
 
 
 def handle_submissions(reddit: Reddit, subreddits: list[str], agent_info: AgentInfo, provider: BaseProvider):
@@ -156,6 +120,19 @@ def handle_model_decision(decision: ActionDecision, reddit: Reddit, agent_info: 
 		comment = reddit.comment(decision.command.comment_id)
 		comment.mark_read()
 		return {'result': 'Comment marked as read'}
+	elif isinstance(decision.command, CreateSubmissionCommand):
+		current_user = get_current_user(reddit)
+		latest_submission = get_latest_submission(current_user)
+		current_utc = int(time.time())
+		min_post_interval_hrs = agent_info.behavior.minimum_time_between_posts_hours
+		if not latest_submission or current_utc > latest_submission.created_utc + min_post_interval_hrs * 3600:
+			reddit.subreddit(decision.command.subreddit).submit(decision.command.title, selftext=decision.command.selftext)
+			return {'result': 'Submission created'}
+		else:
+			return {
+			    'error':
+			    f"Not enough time has passed since the last post, which was published {datetime.fromtimestamp(latest_submission.created_utc)}. Minimum time between posts is {min_post_interval_hrs} hours."
+			}
 	else:
 		return {'error': 'Invalid command'}
 
@@ -180,10 +157,13 @@ def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: Reddit, int
 	    "  mark_comment_as_read COMMENT_ID  # Mark a comment as read",
 	    "  show_conversation_for_comment  COMMENT_ID  # Show the conversation from the root post to the comment with the given ID",
 	    "  reply_to_comment COMMENT_ID REPLY  # Reply to a comment with the given ID. You can get the comment IDs from the inbox",
+	    "  create_post SUBREDDIT TITLE TEXT  # Create a post in the given subreddit (excluding 'r/') with the given title and text",
 	]
 	message_to_model = "\n".join(initial_user_prompt)
 
-	system_prompt = agent_info.agent_description
+	system_prompt = "\n".join([
+	    agent_info.agent_description,
+	])
 	print("System prompt:")
 	print(system_prompt)
 
