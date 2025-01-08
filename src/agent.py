@@ -7,7 +7,7 @@ import time
 from praw import Reddit
 from praw.models import Redditor, Comment, Submission, Message
 from src.history import History, HistoryTurn
-from src.providers.response_models import ActionDecision, ReplyToCommentCommand, ShowInboxCommand, ShowUsernameCommand
+from src.providers.response_models import ActionDecision, MarkCommentAsReadCommand, ReplyToCommentCommand, ShowConversationForCommentCommand, ShowInboxCommand, ShowUsernameCommand
 from src.reddit_utils import get_comment_chain
 from src.providers.base_provider import BaseProvider
 from src.pydantic_models.agent_info import ActiveOnSubreddit, AgentInfo
@@ -20,21 +20,6 @@ def get_current_user(reddit: Reddit) -> Redditor:
 	if not current_user:
 		raise RuntimeError("No user logged in")
 	return current_user
-
-
-def select_comment(reddit: Reddit, agent_info: AgentInfo) -> Comment | None:
-	for item in reddit.inbox.unread(limit=None):  # type: ignore
-		if isinstance(item, Comment):
-			if not item.author:
-				logger.info("Skipping comment from deleted user")
-				continue
-			if item.author == get_current_user(reddit):
-				logger.info("Skipping own comment")
-				continue
-			current_utc = int(time.time())
-			if current_utc - item.created_utc > agent_info.behavior.reply_delay_minutes * 60:
-				return item
-	return None
 
 
 def get_author_name(item: Comment | Submission) -> str:
@@ -56,53 +41,13 @@ def list_inbox(reddit: Reddit) -> list[dict]:
 	return inbox
 
 
-def handle_comment(item: Comment, reddit: Reddit, agent_info: AgentInfo, provider: BaseProvider, interactive: bool):
-	logger.info(f"Handle comment from: {item.author}, Comment: {item.body}")
-	root_submission, comments = get_comment_chain(item, reddit)
+def show_conversation(reddit: Reddit, comment_id: str):
+	comment = reddit.comment(comment_id)
+	root_submission, comments = get_comment_chain(comment, reddit)
 	conversation_struct = {}
 	conversation_struct['root_post'] = {'author': get_author_name(root_submission), 'title': root_submission.title, 'text': root_submission.selftext}
 	conversation_struct['comments'] = [{'author': get_author_name(comment), 'text': comment.body} for comment in comments]
-	system_prompt = [
-	    agent_info.agent_description + "\n",
-	    f"You are in a conversation on Reddit. The conversation is a chain of comments on the subreddit r/{root_submission.subreddit.display_name}",
-	    f"Your username in the conversation is {get_current_user(reddit).name}.",
-	    f"Your task is to first determine whether the last comment in the conversation needs a reply.",
-	    agent_info.behavior.comment_reply_needed_classification,
-	    "If a reply is needed, set the 'reply_needed' field to true and provide a reply in the 'body' field. Otherwise set the 'reply_needed' field to false and leave the 'body' field undefined.",
-	    agent_info.behavior.reply_style,
-	]
-
-	prompt = [
-	    "The conversation is as follows:",
-	    json.dumps(conversation_struct, indent=1),
-	]
-	logger.info("System prompt:")
-	logger.info(system_prompt)
-	logger.info("Prompt:")
-	logger.info(prompt)
-	response = provider.generate_comment("\n".join(system_prompt), "\n".join(prompt))
-	if response is None:
-		logger.error("Failed to generate a response")
-		return
-	logger.info(f"Response:")
-	logger.info(response)
-	if response.reply_needed:
-		if not response.body or response.body == "":
-			logger.error("Reply needed but no body provided")
-			return
-		if not interactive or input("Post reply? (y/n): ") == "y":
-			logger.info("Posting reply...")
-			comments[-1].reply(response.body)
-			logger.info("Reply posted")
-	item.mark_read()
-
-
-def select_and_handle_comment(reddit: Reddit, agent_info: AgentInfo, provider: BaseProvider, interactive: bool):
-	item = select_comment(reddit, agent_info)
-	if item:
-		handle_comment(item, reddit, agent_info, provider, interactive)
-	else:
-		logger.info("No comment for handling found")
+	return conversation_struct
 
 
 def select_subreddit(agent_info: AgentInfo) -> ActiveOnSubreddit:
@@ -204,6 +149,13 @@ def handle_model_decision(decision: ActionDecision, reddit: Reddit, agent_info: 
 		comment = reddit.comment(decision.command.comment_id)
 		comment.reply(decision.command.reply)
 		return {'result': 'Reply posted successfully'}
+	elif isinstance(decision.command, ShowConversationForCommentCommand):
+		conversation = show_conversation(reddit, decision.command.comment_id)
+		return {'conversation': conversation}
+	elif isinstance(decision.command, MarkCommentAsReadCommand):
+		comment = reddit.comment(decision.command.comment_id)
+		comment.mark_read()
+		return {'result': 'Comment marked as read'}
 	else:
 		return {'error': 'Invalid command'}
 
@@ -220,10 +172,13 @@ def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: Reddit, int
 	    "Respond with the command and parameters you want to execute. Also provide a motivation behind the action, and any future steps you plan to take, to help keep track of your strategy.",
 	    "You can work in many steps, and the system will remember your previous actions and responses.",
 	    "Only use comment IDs you have received from earlier actions. Don't use random comment IDs. If you don't have any comment IDs, you can use the 'show_inbox' command to get some.",
+	    "If you want to see the whole conversation from the root post to a comment, use the 'show_conversation_for_comment' command with the comment ID.",
 	    "",
 	    "Available commands:",
-	    "  show_inbox   # List all unread messages and comments",
 	    "  show_my_username  # Show your username",
+	    "  show_inbox   # List all unread messages and comments",
+	    "  mark_comment_as_read COMMENT_ID  # Mark a comment as read",
+	    "  show_conversation_for_comment  COMMENT_ID  # Show the conversation from the root post to the comment with the given ID",
 	    "  reply_to_comment COMMENT_ID REPLY  # Reply to a comment with the given ID. You can get the comment IDs from the inbox",
 	]
 	message_to_model = "\n".join(initial_user_prompt)
@@ -246,7 +201,7 @@ def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: Reddit, int
 		history.turns.append(HistoryTurn(user_prompt=message_to_model, response=json.dumps(response.model_dump())))
 
 		print("")
-		print("Action decision:")
+		print(f"Action decision: {response.command.literal}")
 		print(response.model_dump())
 		message_to_model = handle_model_decision(response, reddit, agent_info, provider, history)
 
