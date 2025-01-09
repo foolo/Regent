@@ -131,57 +131,82 @@ class Agent:
 
 	def handle_model_action(self, decision: Action) -> dict:
 		if isinstance(decision.command, ShowUsername):
-			return {'username': self.get_current_user().name}
-		elif isinstance(decision.command, ShowNewPost):
-			self.stream_submissions_to_state()
-			if len(self.state.streamed_submissions) == 0:
-				return {'note': 'No new submissions'}
-
-			latest_submission = self.reddit.submission(self.state.streamed_submissions[-1].id)
-			del self.state.streamed_submissions[-1]
-			return {
-			    'post': {
-			        'post_id': latest_submission.id,
-			        'author': get_author_name(latest_submission),
-			        'title': latest_submission.title,
-			        'text': latest_submission.selftext,
-			    }
-			}
-		elif isinstance(decision.command, ReplyToPost):
-			submission = self.reddit.submission(decision.command.post_id)
 			try:
+				username = self.get_current_user().name
+			except Exception as e:
+				logger.exception(f"Error getting username. Exception: {e}")
+				return {'error': 'Could not get username'}
+			return {'username': username}
+		elif isinstance(decision.command, ShowNewPost):
+			try:
+				self.stream_submissions_to_state()
+				if len(self.state.streamed_submissions) == 0:
+					return {'note': 'No new submissions'}
+
+				latest_submission = self.reddit.submission(self.state.streamed_submissions[-1].id)
+				del self.state.streamed_submissions[-1]
+				return {
+				    'post': {
+				        'post_id': latest_submission.id,
+				        'author': get_author_name(latest_submission),
+				        'title': latest_submission.title,
+				        'text': latest_submission.selftext,
+				    }
+				}
+			except Exception as e:
+				logger.exception(f"Error fetching new post. Exception: {e}")
+				return {'error': 'Could not fetch new post'}
+		elif isinstance(decision.command, ReplyToPost):
+			try:
+				submission = self.reddit.submission(decision.command.post_id)
 				submission.title  # Check if submission exists
 			except ServerError as e:
 				return {'error': f"Could not fetch post with ID: {decision.command.post_id}"}
-			submission.reply(decision.command.reply_text)
+			try:
+				submission.reply(decision.command.reply_text)
+			except Exception as e:
+				logger.exception(f"Error replying to post. Exception: {e}")
+				return {'error': f"Could not reply to post with ID: {decision.command.post_id}"}
 			return {'result': 'Reply posted successfully'}
 		elif isinstance(decision.command, ReplyToComment):
-			comment = self.reddit.comment(decision.command.comment_id)
 			try:
+				comment = self.reddit.comment(decision.command.comment_id)
 				comment.refresh()
 			except ClientException as e:
 				return {'error': f"Could not fetch comment with ID: {decision.command.comment_id}"}
-			comment.reply(decision.command.reply_text)
+			try:
+				comment.reply(decision.command.reply_text)
+			except Exception as e:
+				logger.exception(f"Error replying to comment. Exception: {e}")
+				return {'error': f"Could not reply to comment with ID: {decision.command.comment_id}"}
 			return {'result': 'Reply posted successfully'}
 		elif isinstance(decision.command, ShowConversationWithNewActivity):
-			comment = self.pop_comment_from_inbox()
-			if not comment:
-				return {'note': 'No new comments in inbox'}
-			conversation = self.show_conversation(comment.id)
+			try:
+				comment = self.pop_comment_from_inbox()
+				if not comment:
+					return {'note': 'No new comments in inbox'}
+				conversation = self.show_conversation(comment.id)
+			except Exception as e:
+				logger.exception(f"Error showing conversation. Exception: {e}")
+				return {'error': f"Could not show conversation"}
 			return {'conversation': conversation}
 		elif isinstance(decision.command, CreatePost):
-			current_user = self.get_current_user()
-			latest_submission = get_latest_submission(current_user)
-			current_utc = int(time.time())
-			min_post_interval_hrs = self.agent_config.behavior.minimum_time_between_posts_hours
-			if not latest_submission or current_utc > latest_submission.created_utc + min_post_interval_hrs * 3600:
-				self.reddit.subreddit(decision.command.subreddit).submit(decision.command.post_title, selftext=decision.command.post_text)
-				return {'result': 'Post created'}
-			else:
-				return {
-				    'error':
-				    f"Not enough time has passed since the last post, which was published {datetime.fromtimestamp(latest_submission.created_utc)}. Minimum time between posts is {min_post_interval_hrs} hours."
-				}
+			try:
+				current_user = self.get_current_user()
+				latest_submission = get_latest_submission(current_user)
+				current_utc = int(time.time())
+				min_post_interval_hrs = self.agent_config.behavior.minimum_time_between_posts_hours
+				if not latest_submission or current_utc > latest_submission.created_utc + min_post_interval_hrs * 3600:
+					self.reddit.subreddit(decision.command.subreddit).submit(decision.command.post_title, selftext=decision.command.post_text)
+					return {'result': 'Post created'}
+				else:
+					return {
+					    'error':
+					    f"Not enough time has passed since the last post, which was published {datetime.fromtimestamp(latest_submission.created_utc)}. Minimum time between posts is {min_post_interval_hrs} hours."
+					}
+			except Exception as e:
+				logger.exception(f"Error creating post. Exception: {e}")
+				return {'error': 'Could not create post'}
 		else:
 			return {'error': 'Invalid command'}
 
