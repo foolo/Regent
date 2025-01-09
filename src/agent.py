@@ -9,7 +9,8 @@ import time
 from praw import Reddit
 from praw.models import Redditor, Comment, Submission
 from praw.exceptions import ClientException
-from src.providers.response_models import Action, CreatePost, ReplyToComment, ShowConversationWithNewActivity, ShowNewPost, ShowUsername
+from prawcore.exceptions import ServerError
+from src.providers.response_models import Action, CreatePost, ReplyToComment, ReplyToPost, ShowConversationWithNewActivity, ShowNewPost, ShowUsername
 from src.pydantic_models.agent_state import AgentState, HistoryItem, StreamedSubmission
 from src.reddit_utils import get_comment_chain
 from src.providers.base_provider import BaseProvider
@@ -147,6 +148,14 @@ class Agent:
 			        'text': latest_submission.selftext,
 			    }
 			}
+		elif isinstance(decision.command, ReplyToPost):
+			submission = self.reddit.submission(decision.command.post_id)
+			try:
+				submission.title  # Check if submission exists
+			except ServerError as e:
+				return {'error': f"Could not fetch post with ID: {decision.command.post_id}"}
+			submission.reply(decision.command.reply_text)
+			return {'result': 'Reply posted successfully'}
 		elif isinstance(decision.command, ReplyToComment):
 			comment = self.reddit.comment(decision.command.comment_id)
 			try:
@@ -204,6 +213,7 @@ class Agent:
 		    "Available commands:",
 		    "  show_my_username  # Show your username",
 		    "  show_new_post  # Show the newest post in the monitored subreddits",
+		    "  reply_to_post POST_ID REPLY_TEXT  # Reply to a post with the given ID. You can get the post IDs via the 'show_new_post' command",
 		    "  show_conversation_with_new_activity  # If you have new comments in your inbox, show the whole conversation for the newest one",
 		    "  reply_to_comment COMMENT_ID REPLY_TEXT  # Reply to a comment with the given ID. You can get the comment IDs from the inbox",
 		    "  create_post SUBREDDIT POST_TITLE POST_TEXT  # Create a post in the given subreddit (excluding 'r/') with the given title and text",

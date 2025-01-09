@@ -34,6 +34,12 @@ class ReplyToComment(BaseModel):
 		return f"{self.literal} {self.comment_id} '{self.reply_text}'"
 
 
+class ReplyToPost(BaseModel):
+	literal: Literal["reply_to_post"]
+	post_id: str
+	reply_text: str
+
+
 class CreatePost(BaseModel):
 	literal: Literal["create_post"]
 	subreddit: str
@@ -43,7 +49,7 @@ class CreatePost(BaseModel):
 
 class Action(BaseModel):
 	motivation_behind_the_action: str
-	command: ShowUsername | ShowNewPost | ReplyToComment | ShowConversationWithNewActivity | CreatePost
+	command: ShowUsername | ShowNewPost | ReplyToComment | ReplyToPost | ShowConversationWithNewActivity | CreatePost
 
 	def __str__(self):
 		return f"{self.command} {self.motivation_behind_the_action}"
