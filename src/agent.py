@@ -9,7 +9,7 @@ import time
 from praw import Reddit
 from praw.models import Redditor, Comment, Submission
 from praw.exceptions import ClientException
-from src.providers.response_models import Action, CreateSubmission, ReplyToComment, ShowConversationWithNewActivity, ShowNewSubmission, ShowUsername
+from src.providers.response_models import Action, CreatePost, ReplyToComment, ShowConversationWithNewActivity, ShowNewPost, ShowUsername
 from src.pydantic_models.agent_state import AgentState, HistoryItem, StreamedSubmission
 from src.reddit_utils import get_comment_chain
 from src.providers.base_provider import BaseProvider
@@ -132,7 +132,7 @@ class Agent:
 	def handle_model_action(self, decision: Action) -> dict:
 		if isinstance(decision.command, ShowUsername):
 			return {'username': self.get_current_user().name}
-		elif isinstance(decision.command, ShowNewSubmission):
+		elif isinstance(decision.command, ShowNewPost):
 			self.stream_submissions_to_state()
 			if len(self.state.streamed_submissions) == 0:
 				return {'note': 'No new submissions'}
@@ -140,7 +140,7 @@ class Agent:
 			latest_submission = self.reddit.submission(self.state.streamed_submissions[-1].id)
 			del self.state.streamed_submissions[-1]
 			return {
-			    'submission': {
+			    'post': {
 			        'id': latest_submission.id,
 			        'author': get_author_name(latest_submission),
 			        'title': latest_submission.title,
@@ -161,14 +161,14 @@ class Agent:
 				return {'note': 'No new comments in inbox'}
 			conversation = self.show_conversation(comment.id)
 			return {'conversation': conversation}
-		elif isinstance(decision.command, CreateSubmission):
+		elif isinstance(decision.command, CreatePost):
 			current_user = self.get_current_user()
 			latest_submission = get_latest_submission(current_user)
 			current_utc = int(time.time())
 			min_post_interval_hrs = self.agent_info.behavior.minimum_time_between_posts_hours
 			if not latest_submission or current_utc > latest_submission.created_utc + min_post_interval_hrs * 3600:
 				self.reddit.subreddit(decision.command.subreddit).submit(decision.command.title, selftext=decision.command.selftext)
-				return {'result': 'Submission created'}
+				return {'result': 'Post created'}
 			else:
 				return {
 				    'error':
@@ -203,7 +203,7 @@ class Agent:
 		    "",
 		    "Available commands:",
 		    "  show_my_username  # Show your username",
-		    "  show_new_submission  # Show the newest submission in the monitored subreddits",
+		    "  show_new_post  # Show the newest post in the monitored subreddits",
 		    "  show_conversation_with_new_activity  # If you have new comments in your inbox, show the whole conversation for the newest one",
 		    "  reply_to_comment COMMENT_ID REPLY  # Reply to a comment with the given ID. You can get the comment IDs from the inbox",
 		    "  create_post SUBREDDIT TITLE TEXT  # Create a post in the given subreddit (excluding 'r/') with the given title and text",

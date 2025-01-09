@@ -17,8 +17,8 @@ class ShowUsername(BaseModel):
 	literal: Literal["show_username"]
 
 
-class ShowNewSubmission(BaseModel):
-	literal: Literal["show_new_submission"]
+class ShowNewPost(BaseModel):
+	literal: Literal["show_new_post"]
 
 
 class ShowConversationWithNewActivity(BaseModel):
@@ -34,8 +34,8 @@ class ReplyToComment(BaseModel):
 		return f"{self.literal} {self.comment_id} '{self.reply}'"
 
 
-class CreateSubmission(BaseModel):
-	literal: Literal["create_submission"]
+class CreatePost(BaseModel):
+	literal: Literal["create_post"]
 	subreddit: str
 	title: str
 	selftext: str
@@ -43,7 +43,7 @@ class CreateSubmission(BaseModel):
 
 class Action(BaseModel):
 	motivation_behind_the_action: str
-	command: ShowUsername | ShowNewSubmission | ReplyToComment | ShowConversationWithNewActivity | CreateSubmission
+	command: ShowUsername | ShowNewPost | ReplyToComment | ShowConversationWithNewActivity | CreatePost
 
 	def __str__(self):
 		return f"{self.command} {self.motivation_behind_the_action}"
