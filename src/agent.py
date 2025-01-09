@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 import json
 import logging
 import os
+import sys
 import threading
 import time
 from praw import Reddit
@@ -217,7 +218,8 @@ class Agent:
 			print(model_action.model_dump())
 
 			if self.test_mode:
-				input("Press enter to continue...")
+				print("Press enter to continue...", file=sys.stderr)
+				input("")
 			else:
 				time.sleep(self.iteration_interval)
 
