@@ -30,9 +30,6 @@ class ReplyToComment(BaseModel):
 	comment_id: str
 	reply_text: str
 
-	def __str__(self):
-		return f"{self.literal} {self.comment_id} '{self.reply_text}'"
-
 
 class ReplyToPost(BaseModel):
 	literal: Literal["reply_to_post"]
