@@ -26,10 +26,12 @@ def get_latest_submission(current_user: Redditor) -> Submission | None:
 
 
 class Agent:
-	def __init__(self, agent_info: AgentInfo, provider: BaseProvider, reddit: Reddit):
+	def __init__(self, agent_info: AgentInfo, provider: BaseProvider, reddit: Reddit, test_mode: bool, iteration_interval: int):
 		self.agent_info = agent_info
 		self.provider = provider
 		self.reddit = reddit
+		self.test_mode = test_mode
+		self.iteration_interval = iteration_interval
 
 	def get_current_user(self) -> Redditor:
 		current_user = self.reddit.user.me()
@@ -52,7 +54,10 @@ class Agent:
 	def pop_comment_from_inbox(self) -> Comment | None:
 		for item in self.reddit.inbox.unread(limit=None):  # type: ignore
 			if isinstance(item, Comment):
-				item.mark_read()
+				if self.test_mode:
+					print(f"Test mode. Not marking comment {item.id} as read")
+				else:
+					item.mark_read()
 				return item
 		return None
 
@@ -151,7 +156,7 @@ class Agent:
 		    f"Unread messages in inbox: {unread_messages}",
 		])
 
-	def run(self, interactive: bool, iteration_interval: int):
+	def run(self):
 		# subreddits = [subreddit.name for subreddit in agent_info.active_on_subreddits]
 		# stream_submissions_thread = threading.Thread(target=handle_submissions, args=(reddit, subreddits, agent_info, provider))
 		# stream_submissions_thread.start()
@@ -211,7 +216,11 @@ class Agent:
 			print(f"Model action: {model_action.command.literal}")
 			print(model_action.model_dump())
 
-			input("Press enter to continue...")
+			if self.test_mode:
+				input("Press enter to continue...")
+			else:
+				time.sleep(self.iteration_interval)
+
 			action_result = self.handle_model_action(model_action)
 
 			state.history.append(HistoryItem(

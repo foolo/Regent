@@ -48,7 +48,7 @@ def run():
 	parser = argparse.ArgumentParser()
 	parser.add_argument("agent_schema", type=argparse.FileType('r'))
 	parser.add_argument("provider", type=str)
-	parser.add_argument("--interactive", action="store_true", help="Run the agent in interactive mode, allowing you to confirm before posting.")
+	parser.add_argument("--test_mode", action="store_true", help="Run the agent in test mode. Enables confirmation before each action. Inbox comments are not marked as read.")
 	parser.add_argument("--iteration_interval", type=int, default=60, help="The interval in seconds between agent iterations.")
 	args = parser.parse_args()
 
@@ -73,10 +73,10 @@ def run():
 	agent_info = AgentInfo(**agent_schema_obj)
 	logger.info(f'Loaded agent: {agent_info.name}')
 
-	interactive: bool = args.interactive
+	test_mode: bool = args.test_mode
 	iteration_interval: int = args.iteration_interval
-	agent = Agent(agent_info, provider, reddit)
-	agent.run(interactive, iteration_interval)
+	agent = Agent(agent_info, provider, reddit, test_mode, iteration_interval)
+	agent.run()
 
 
 if __name__ == '__main__':
