@@ -75,7 +75,8 @@ def run():
 
 	test_mode: bool = args.test_mode
 	iteration_interval: int = args.iteration_interval
-	agent = Agent(agent_info, provider, reddit, test_mode, iteration_interval)
+	agent_state_filename = 'agent_state.json'
+	agent = Agent(agent_state_filename, agent_info, provider, reddit, test_mode, iteration_interval)
 	agent.run()
 
 

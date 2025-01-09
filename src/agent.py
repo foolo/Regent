@@ -28,7 +28,15 @@ def get_latest_submission(current_user: Redditor) -> Submission | None:
 
 
 class Agent:
-	def __init__(self, agent_info: AgentInfo, provider: BaseProvider, reddit: Reddit, test_mode: bool, iteration_interval: int):
+	def __init__(self, state_filename: str, agent_info: AgentInfo, provider: BaseProvider, reddit: Reddit, test_mode: bool, iteration_interval: int):
+		if os.path.exists(state_filename):
+			with open(state_filename) as f:
+				whole_file_as_string = f.read()
+				self.state = AgentState.model_validate_json(whole_file_as_string)
+		else:
+			self.state = AgentState(history=[])
+
+		self.state_filename = state_filename
 		self.agent_info = agent_info
 		self.provider = provider
 		self.reddit = reddit
@@ -172,14 +180,6 @@ class Agent:
 		# stream_submissions_thread = threading.Thread(target=handle_submissions, args=(reddit, subreddits, agent_info, provider))
 		# stream_submissions_thread.start()
 
-		agent_state_filename = 'agent_state.json'
-		if os.path.exists(agent_state_filename):
-			with open(agent_state_filename) as f:
-				whole_file_as_string = f.read()
-				state = AgentState.model_validate_json(whole_file_as_string)
-		else:
-			state = AgentState(history=[])
-
 		system_prompt = "\n".join([
 		    self.agent_info.agent_description,
 		    "",
@@ -202,10 +202,10 @@ class Agent:
 
 		while True:
 			print("Prompt:")
-			if len(state.history) == 0:
+			if len(self.state.history) == 0:
 				print("(No history)")
 			else:
-				print(state.history[-1].action_result)
+				print(self.state.history[-1].action_result)
 
 			dashboard_message = "\n".join([
 			    "Dashboard:",
@@ -217,7 +217,7 @@ class Agent:
 			print("Dashboard message:")
 			print(dashboard_message)
 
-			model_action = self.provider.get_action(system_prompt, state.history, dashboard_message)
+			model_action = self.provider.get_action(system_prompt, self.state.history, dashboard_message)
 			if model_action is None:
 				logger.error("Failed to get action")
 				continue
@@ -234,10 +234,10 @@ class Agent:
 
 			action_result = self.handle_model_action(model_action)
 
-			state.history.append(HistoryItem(
+			self.state.history.append(HistoryItem(
 			    model_action=json.dumps(model_action.model_dump()),
 			    action_result=json.dumps(action_result),
 			))
 
-			with open(agent_state_filename, 'w') as f:
-				f.write(state.model_dump_json(indent=2))
+			with open(self.state_filename, 'w') as f:
+				f.write(self.state.model_dump_json(indent=2))
