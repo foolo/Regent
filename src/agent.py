@@ -153,7 +153,7 @@ class Agent:
 				comment.refresh()
 			except ClientException as e:
 				return {'error': f"Could not fetch comment with ID: {decision.command.comment_id}"}
-			comment.reply(decision.command.reply)
+			comment.reply(decision.command.reply_text)
 			return {'result': 'Reply posted successfully'}
 		elif isinstance(decision.command, ShowConversationWithNewActivity):
 			comment = self.pop_comment_from_inbox()
@@ -167,7 +167,7 @@ class Agent:
 			current_utc = int(time.time())
 			min_post_interval_hrs = self.agent_info.behavior.minimum_time_between_posts_hours
 			if not latest_submission or current_utc > latest_submission.created_utc + min_post_interval_hrs * 3600:
-				self.reddit.subreddit(decision.command.subreddit).submit(decision.command.title, selftext=decision.command.selftext)
+				self.reddit.subreddit(decision.command.subreddit).submit(decision.command.post_title, selftext=decision.command.post_text)
 				return {'result': 'Post created'}
 			else:
 				return {
@@ -205,8 +205,8 @@ class Agent:
 		    "  show_my_username  # Show your username",
 		    "  show_new_post  # Show the newest post in the monitored subreddits",
 		    "  show_conversation_with_new_activity  # If you have new comments in your inbox, show the whole conversation for the newest one",
-		    "  reply_to_comment COMMENT_ID REPLY  # Reply to a comment with the given ID. You can get the comment IDs from the inbox",
-		    "  create_post SUBREDDIT TITLE TEXT  # Create a post in the given subreddit (excluding 'r/') with the given title and text",
+		    "  reply_to_comment COMMENT_ID REPLY_TEXT  # Reply to a comment with the given ID. You can get the comment IDs from the inbox",
+		    "  create_post SUBREDDIT POST_TITLE POST_TEXT  # Create a post in the given subreddit (excluding 'r/') with the given title and text",
 		])
 
 		print("System prompt:")

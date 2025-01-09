@@ -28,17 +28,17 @@ class ShowConversationWithNewActivity(BaseModel):
 class ReplyToComment(BaseModel):
 	literal: Literal["reply_to_comment"]
 	comment_id: str
-	reply: str
+	reply_text: str
 
 	def __str__(self):
-		return f"{self.literal} {self.comment_id} '{self.reply}'"
+		return f"{self.literal} {self.comment_id} '{self.reply_text}'"
 
 
 class CreatePost(BaseModel):
 	literal: Literal["create_post"]
 	subreddit: str
-	title: str
-	selftext: str
+	post_title: str
+	post_text: str
 
 
 class Action(BaseModel):
