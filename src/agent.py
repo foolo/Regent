@@ -8,7 +8,7 @@ import time
 from praw import Reddit
 from praw.models import Redditor, Comment, Submission
 from praw.exceptions import ClientException
-from src.providers.response_models import Action, CreateSubmission, MarkCommentAsRead, ReplyToComment, ShowConversationWithNewActivity, ShowUsername
+from src.providers.response_models import Action, CreateSubmission, ReplyToComment, ShowConversationWithNewActivity, ShowUsername
 from src.pydantic_models.agent_state import AgentState, HistoryItem
 from src.reddit_utils import get_comment_chain
 from src.providers.base_provider import BaseProvider
@@ -136,10 +136,6 @@ class Agent:
 				return {'note': 'No new comments in inbox'}
 			conversation = self.show_conversation(comment.id)
 			return {'conversation': conversation}
-		elif isinstance(decision.command, MarkCommentAsRead):
-			comment = self.reddit.comment(decision.command.comment_id)
-			comment.mark_read()
-			return {'result': 'Comment marked as read'}
 		elif isinstance(decision.command, CreateSubmission):
 			current_user = self.get_current_user()
 			latest_submission = get_latest_submission(current_user)
@@ -187,7 +183,6 @@ class Agent:
 		    "",
 		    "Available commands:",
 		    "  show_my_username  # Show your username",
-		    "  mark_comment_as_read COMMENT_ID  # Mark a comment as read",
 		    "  show_conversation_with_new_activity  # If you have new comments in your inbox, show the whole conversation for the newest one",
 		    "  reply_to_comment COMMENT_ID REPLY  # Reply to a comment with the given ID. You can get the comment IDs from the inbox",
 		    "  create_post SUBREDDIT TITLE TEXT  # Create a post in the given subreddit (excluding 'r/') with the given title and text",
