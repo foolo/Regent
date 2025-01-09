@@ -6,7 +6,7 @@ import threading
 import time
 from praw import Reddit
 from praw.models import Redditor, Comment, Submission
-from src.providers.response_models import Action, CreateSubmission, MarkCommentAsRead, ReplyToComment, ShowConversationForComment, ShowInbox, ShowUsername
+from src.providers.response_models import Action, CreateSubmission, MarkCommentAsRead, ReplyToComment, ShowConversationWithNewActivity, ShowUsername
 from src.pydantic_models.agent_state import AgentState, HistoryItem
 from src.reddit_utils import get_comment_chain
 from src.providers.base_provider import BaseProvider
@@ -39,6 +39,14 @@ def list_inbox(reddit: Reddit) -> list[dict]:
 			    'body': item.body,
 			})
 	return inbox
+
+
+def pop_comment_from_inbox(reddit: Reddit) -> Comment | None:
+	for item in reddit.inbox.unread(limit=None):  # type: ignore
+		if isinstance(item, Comment):
+			item.mark_read()
+			return item
+	return None
 
 
 def show_conversation(reddit: Reddit, comment_id: str):
@@ -104,17 +112,17 @@ def handle_submissions(reddit: Reddit, subreddits: list[str], agent_info: AgentI
 
 
 def handle_model_action(decision: Action, reddit: Reddit, agent_info: AgentInfo) -> dict:
-	if isinstance(decision.command, ShowInbox):
-		inbox = list_inbox(reddit)
-		return {'inbox': inbox}
-	elif isinstance(decision.command, ShowUsername):
+	if isinstance(decision.command, ShowUsername):
 		return {'username': get_current_user(reddit).name}
 	elif isinstance(decision.command, ReplyToComment):
 		comment = reddit.comment(decision.command.comment_id)
 		comment.reply(decision.command.reply)
 		return {'result': 'Reply posted successfully'}
-	elif isinstance(decision.command, ShowConversationForComment):
-		conversation = show_conversation(reddit, decision.command.comment_id)
+	elif isinstance(decision.command, ShowConversationWithNewActivity):
+		comment = pop_comment_from_inbox(reddit)
+		if not comment:
+			return {'note': 'No new comments in inbox'}
+		conversation = show_conversation(reddit, comment.id)
 		return {'conversation': conversation}
 	elif isinstance(decision.command, MarkCommentAsRead):
 		comment = reddit.comment(decision.command.comment_id)
@@ -169,9 +177,8 @@ def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: Reddit, int
 	    "",
 	    "Available commands:",
 	    "  show_my_username  # Show your username",
-	    "  show_inbox   # List all unread messages and comments",
 	    "  mark_comment_as_read COMMENT_ID  # Mark a comment as read",
-	    "  show_conversation_for_comment  COMMENT_ID  # Show the conversation from the root post to the comment with the given ID",
+	    "  show_conversation_with_new_activity  # If you have new comments in your inbox, show the whole conversation for the newest one",
 	    "  reply_to_comment COMMENT_ID REPLY  # Reply to a comment with the given ID. You can get the comment IDs from the inbox",
 	    "  create_post SUBREDDIT TITLE TEXT  # Create a post in the given subreddit (excluding 'r/') with the given title and text",
 	])

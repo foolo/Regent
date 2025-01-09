@@ -13,15 +13,6 @@ class RedditReply(BaseModel):
 	body: Optional[str]
 
 
-class ShowInbox(BaseModel):
-	literal: Literal["show_inbox"]
-
-
-class ShowConversationForComment(BaseModel):
-	literal: Literal["show_conversation_for_comment"]
-	comment_id: str
-
-
 class ShowUsername(BaseModel):
 	literal: Literal["show_username"]
 
@@ -29,6 +20,10 @@ class ShowUsername(BaseModel):
 class MarkCommentAsRead(BaseModel):
 	literal: Literal["mark_comment_as_read"]
 	comment_id: str
+
+
+class ShowConversationWithNewActivity(BaseModel):
+	literal: Literal["show_conversation_with_new_activity"]
 
 
 class ReplyToComment(BaseModel):
@@ -49,7 +44,7 @@ class CreateSubmission(BaseModel):
 
 class Action(BaseModel):
 	motivation_behind_the_action: str
-	command: ShowInbox | ShowUsername | ReplyToComment | ShowConversationForComment | MarkCommentAsRead | CreateSubmission
+	command: ShowUsername | ReplyToComment | ShowConversationWithNewActivity | MarkCommentAsRead | CreateSubmission
 
 	def __str__(self):
 		return f"{self.command} {self.motivation_behind_the_action}"
