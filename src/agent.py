@@ -103,7 +103,7 @@ def handle_submissions(reddit: Reddit, subreddits: list[str], agent_info: AgentI
 			threading.Thread(target=handle_submission, args=(s, )).start()
 
 
-def handle_model_action(decision: Action, reddit: Reddit, agent_info: AgentInfo, provider: BaseProvider) -> dict:
+def handle_model_action(decision: Action, reddit: Reddit, agent_info: AgentInfo) -> dict:
 	if isinstance(decision.command, ShowInbox):
 		inbox = list_inbox(reddit)
 		return {'inbox': inbox}
@@ -137,7 +137,7 @@ def handle_model_action(decision: Action, reddit: Reddit, agent_info: AgentInfo,
 		return {'error': 'Invalid command'}
 
 
-def generate_dashboard(agent_info: AgentInfo, reddit: Reddit, provider: BaseProvider):
+def generate_dashboard(reddit: Reddit):
 	unread_messages = len(list_inbox(reddit))
 	return "\n".join([
 	    f"Unread messages in inbox: {unread_messages}",
@@ -188,7 +188,7 @@ def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: Reddit, int
 
 		dashboard_message = "\n".join([
 		    "Dashboard:",
-		    generate_dashboard(agent_info, reddit, provider),
+		    generate_dashboard(reddit),
 		    "",
 		    "Now you can enter your action:",
 		])
@@ -206,7 +206,7 @@ def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: Reddit, int
 		print(model_action.model_dump())
 
 		input("Press enter to continue...")
-		action_result = handle_model_action(model_action, reddit, agent_info, provider)
+		action_result = handle_model_action(model_action, reddit, agent_info)
 
 		state.history.append(HistoryItem(
 		    model_action=json.dumps(model_action.model_dump()),
