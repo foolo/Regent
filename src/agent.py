@@ -14,7 +14,7 @@ from src.providers.response_models import Action, CreatePost, ReplyToComment, Re
 from src.pydantic_models.agent_state import AgentState, HistoryItem, StreamedSubmission
 from src.reddit_utils import get_comment_chain
 from src.providers.base_provider import BaseProvider
-from src.pydantic_models.agent_info import AgentInfo
+from src.pydantic_models.agent_config import AgentConfig
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +30,7 @@ def get_latest_submission(current_user: Redditor) -> Submission | None:
 
 
 class Agent:
-	def __init__(self, state_filename: str, agent_info: AgentInfo, provider: BaseProvider, reddit: Reddit, test_mode: bool, iteration_interval: int):
+	def __init__(self, state_filename: str, agent_config: AgentConfig, provider: BaseProvider, reddit: Reddit, test_mode: bool, iteration_interval: int):
 		if os.path.exists(state_filename):
 			with open(state_filename) as f:
 				whole_file_as_string = f.read()
@@ -39,7 +39,7 @@ class Agent:
 			self.state = AgentState(history=[], streamed_submissions=[], streamed_submissions_until_timestamp=datetime.fromtimestamp(0, timezone.utc))
 
 		self.state_filename = state_filename
-		self.agent_info = agent_info
+		self.agent_config = agent_config
 		self.provider = provider
 		self.reddit = reddit
 		self.test_mode = test_mode
@@ -104,15 +104,15 @@ class Agent:
 				break
 			submissions_newer_than_max_age = []
 			for s in self.state.streamed_submissions:
-				if s.timestamp > datetime.now(timezone.utc) - timedelta(hours=self.agent_info.behavior.max_post_age_for_replying_hours):
+				if s.timestamp > datetime.now(timezone.utc) - timedelta(hours=self.agent_config.behavior.max_post_age_for_replying_hours):
 					submissions_newer_than_max_age.append(s)
 				else:
-					logger.info(f"Removing post older than {self.agent_info.behavior.max_post_age_for_replying_hours} hours: {s.timestamp}")
+					logger.info(f"Removing post older than {self.agent_config.behavior.max_post_age_for_replying_hours} hours: {s.timestamp}")
 			self.state.streamed_submissions = submissions_newer_than_max_age
 		self.save_state()
 
 	def handle_submissions(self):
-		subreddits = [subreddit.name for subreddit in self.agent_info.active_on_subreddits]
+		subreddits = [subreddit.name for subreddit in self.agent_config.active_on_subreddits]
 		subreddit = self.reddit.subreddit("+".join(subreddits))
 		logger.info(f"Monitoring subreddit: {subreddit.display_name}")
 		for s in subreddit.stream.submissions():
@@ -123,7 +123,7 @@ class Agent:
 				logger.debug(f"Skipping post without text: {s.id}, {s.title}")
 				continue
 			timestamp = datetime.fromtimestamp(s.created_utc, timezone.utc)
-			max_post_age_for_replying_hours = self.agent_info.behavior.max_post_age_for_replying_hours
+			max_post_age_for_replying_hours = self.agent_config.behavior.max_post_age_for_replying_hours
 			if timestamp < datetime.now(timezone.utc) - timedelta(hours=max_post_age_for_replying_hours):
 				logger.debug(f"Skipping post older than {max_post_age_for_replying_hours} hours: {timestamp} {s.id}, {s.title}")
 			else:
@@ -174,7 +174,7 @@ class Agent:
 			current_user = self.get_current_user()
 			latest_submission = get_latest_submission(current_user)
 			current_utc = int(time.time())
-			min_post_interval_hrs = self.agent_info.behavior.minimum_time_between_posts_hours
+			min_post_interval_hrs = self.agent_config.behavior.minimum_time_between_posts_hours
 			if not latest_submission or current_utc > latest_submission.created_utc + min_post_interval_hrs * 3600:
 				self.reddit.subreddit(decision.command.subreddit).submit(decision.command.post_title, selftext=decision.command.post_text)
 				return {'result': 'Post created'}
@@ -201,7 +201,7 @@ class Agent:
 		stream_submissions_thread.start()
 
 		system_prompt = "\n".join([
-		    self.agent_info.agent_description,
+		    self.agent_config.agent_description,
 		    "",
 		    "To acheive your goals, you can interact with Reddit users by replying to comments, creating posts, and more.",
 		    "You will be provided with a list of available commands, the recent command history, and a dashboard of the current state (e.g. number of messages in inbox).",

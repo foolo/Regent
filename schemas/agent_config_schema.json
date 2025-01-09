@@ -2,7 +2,7 @@
 	"$schema": "https://json-schema.org/draft/2020-12/schema",
 	"description": "Schema for the agent",
 	"type": "object",
-	"title": "AgentInfo",
+	"title": "AgentConfig",
 	"required": [
 		"name",
 		"agent_description",

@@ -8,7 +8,7 @@ from praw import Reddit
 
 from src.agent import Agent
 from src.reddit_config_loader import load_reddit_config
-from src.pydantic_models.agent_info import AgentInfo
+from src.pydantic_models.agent_config import AgentConfig
 from src.providers.openai_provider import OpenAIProvider
 from src.pydantic_models.openai_config import OpenAIConfig
 
@@ -70,13 +70,13 @@ def run():
 	agent_schema = args.agent_schema
 	agent_schema_obj = yaml.safe_load(agent_schema)
 
-	agent_info = AgentInfo(**agent_schema_obj)
-	logger.info(f'Loaded agent: {agent_info.name}')
+	agent_config = AgentConfig(**agent_schema_obj)
+	logger.info(f'Loaded agent: {agent_config.name}')
 
 	test_mode: bool = args.test_mode
 	iteration_interval: int = args.iteration_interval
 	agent_state_filename = 'agent_state.json'
-	agent = Agent(agent_state_filename, agent_info, provider, reddit, test_mode, iteration_interval)
+	agent = Agent(agent_state_filename, agent_config, provider, reddit, test_mode, iteration_interval)
 	agent.run()
 
 
