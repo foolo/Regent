@@ -3,34 +3,12 @@
 
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import List
 
 from pydantic import BaseModel, Field
 
 
-class ActiveOnSubreddit(BaseModel):
-    name: str = Field(..., description='The name of the subreddit')
-    post_instructions: Optional[str] = Field(
-        None,
-        description='Instructions for the agent on how to make posts to the subreddit',
-    )
-
-
 class Behavior(BaseModel):
-    comment_reply_needed_classification: str = Field(
-        ...,
-        description='Explain what kinds of comments the agent should reply to, and what kinds it should ignore.',
-    )
-    post_reply_needed_classification: str = Field(
-        ...,
-        description='Explain what kinds of posts the agent should reply to, and what kinds it should ignore.',
-    )
-    reply_style: str = Field(..., description="The style of the agent's replies.")
-    post_style: str = Field(..., description="The style of the agent's posts.")
-    reply_delay_minutes: int = Field(
-        ...,
-        description='The minimum time in minutes before the agent will reply to a comment.',
-    )
     max_post_age_for_replying_hours: int = Field(
         ...,
         description='The maximum age of a post in hours that the agent will reply to.',
@@ -44,7 +22,7 @@ class Behavior(BaseModel):
 class AgentConfig(BaseModel):
     name: str = Field(..., description='The name of the agent')
     agent_description: str = Field(..., description='A description of the agent')
-    active_on_subreddits: List[ActiveOnSubreddit] = Field(
+    active_on_subreddits: List[str] = Field(
         ..., description='The subreddits the agent is active on', min_length=1
     )
     behavior: Behavior = Field(..., description='The behavior of the agent')

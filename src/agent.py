@@ -112,8 +112,7 @@ class Agent:
 		self.save_state()
 
 	def handle_submissions(self):
-		subreddits = [subreddit.name for subreddit in self.agent_config.active_on_subreddits]
-		subreddit = self.reddit.subreddit("+".join(subreddits))
+		subreddit = self.reddit.subreddit("+".join(self.agent_config.active_on_subreddits))
 		logger.info(f"Monitoring subreddit: {subreddit.display_name}")
 		for s in subreddit.stream.submissions():
 			if s.author == self.get_current_user():

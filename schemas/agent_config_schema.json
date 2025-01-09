@@ -22,20 +22,8 @@
 			"type": "array",
 			"description": "The subreddits the agent is active on",
 			"items": {
-				"type": "object",
-				"required": [
-					"name"
-				],
-				"properties": {
-					"name": {
-						"type": "string",
-						"description": "The name of the subreddit"
-					},
-					"post_instructions": {
-						"type": "string",
-						"description": "Instructions for the agent on how to make posts to the subreddit"
-					}
-				}
+				"type": "string",
+				"description": "The name of the subreddit"
 			},
 			"minItems": 1
 		},
@@ -43,35 +31,10 @@
 			"type": "object",
 			"description": "The behavior of the agent",
 			"required": [
-				"comment_reply_needed_classification",
-				"post_reply_needed_classification",
-				"reply_style",
-				"post_style",
-				"reply_delay_minutes",
 				"max_post_age_for_replying_hours",
 				"minimum_time_between_posts_hours"
 			],
 			"properties": {
-				"comment_reply_needed_classification": {
-					"type": "string",
-					"description": "Explain what kinds of comments the agent should reply to, and what kinds it should ignore."
-				},
-				"post_reply_needed_classification": {
-					"type": "string",
-					"description": "Explain what kinds of posts the agent should reply to, and what kinds it should ignore."
-				},
-				"reply_style": {
-					"type": "string",
-					"description": "The style of the agent's replies."
-				},
-				"post_style": {
-					"type": "string",
-					"description": "The style of the agent's posts."
-				},
-				"reply_delay_minutes": {
-					"type": "integer",
-					"description": "The minimum time in minutes before the agent will reply to a comment."
-				},
 				"max_post_age_for_replying_hours": {
 					"type": "integer",
 					"description": "The maximum age of a post in hours that the agent will reply to."

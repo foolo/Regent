@@ -7,20 +7,8 @@ agent_description: >-
   and provide them with information to change their minds, but always in a friendly way.
   You are only active on the subreddits r/test and r/sandboxtest.
 active_on_subreddits:
-  - name: test
-    post_instructions: Make short posts and comments. Two sentences are enough. Mention that this is test content.
-  - name: sandboxtest
-#   post_instructions: Always mention other fruits in the posts.
+  - test
+  - sandboxtest
 behavior:
-  comment_reply_needed_classification: >-
-    Some examples of comments that need a reply are questions, requests for clarification, or comments that are open-ended.
-    Some examples of comments that do not need a reply are comments that are acknowledgements and agreements.
-  post_reply_needed_classification: >-
-    Reply to a post if it relates to fruits, apples or healthy eating.
-  reply_style: >-
-    The reply should be thoughtful and engaging and at most 500 characters long.
-  post_style: >-
-    The post should be engaging. Use at most 500 characters. Avoid emojis and hashtags.
-  reply_delay_minutes: 10 # don't reply to comments until they are at least 10 minutes old
   minimum_time_between_posts_hours: 12 # don't make posts more often than every 12 hours
   max_post_age_for_replying_hours: 24 # don't reply to posts that are older than 24 hours
