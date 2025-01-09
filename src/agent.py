@@ -57,7 +57,7 @@ class Agent:
 			if isinstance(item, Comment):
 				inbox.append({
 				    'type': 'comment',
-				    'id': item.id,
+				    'comment_id': item.id,
 				    'author': get_author_name(item),
 				    'body': item.body,
 				})
@@ -85,7 +85,7 @@ class Agent:
 		conversation_struct['comments'] = [{
 		    'author': get_author_name(comment),
 		    'text': comment.body,
-		    'id': comment.id,
+		    'comment_id': comment.id,
 		} for comment in comments]
 
 		return conversation_struct
@@ -141,7 +141,7 @@ class Agent:
 			del self.state.streamed_submissions[-1]
 			return {
 			    'post': {
-			        'id': latest_submission.id,
+			        'post_id': latest_submission.id,
 			        'author': get_author_name(latest_submission),
 			        'title': latest_submission.title,
 			        'text': latest_submission.selftext,
