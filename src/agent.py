@@ -67,8 +67,17 @@ class Agent:
 		comment = self.reddit.comment(comment_id)
 		root_submission, comments = get_comment_chain(comment, self.reddit)
 		conversation_struct = {}
-		conversation_struct['root_post'] = {'author': get_author_name(root_submission), 'title': root_submission.title, 'text': root_submission.selftext}
-		conversation_struct['comments'] = [{'author': get_author_name(comment), 'text': comment.body} for comment in comments]
+		conversation_struct['root_post'] = {
+		    'author': get_author_name(root_submission),
+		    'title': root_submission.title,
+		    'text': root_submission.selftext,
+		}
+		conversation_struct['comments'] = [{
+		    'author': get_author_name(comment),
+		    'text': comment.body,
+		    'id': comment.id,
+		} for comment in comments]
+
 		return conversation_struct
 
 	def handle_submissions(self, subreddits: list[str]):
