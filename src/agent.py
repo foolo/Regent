@@ -7,6 +7,7 @@ import threading
 import time
 from praw import Reddit
 from praw.models import Redditor, Comment, Submission
+from praw.exceptions import ClientException
 from src.providers.response_models import Action, CreateSubmission, MarkCommentAsRead, ReplyToComment, ShowConversationWithNewActivity, ShowUsername
 from src.pydantic_models.agent_state import AgentState, HistoryItem
 from src.reddit_utils import get_comment_chain
@@ -123,6 +124,10 @@ class Agent:
 			return {'username': self.get_current_user().name}
 		elif isinstance(decision.command, ReplyToComment):
 			comment = self.reddit.comment(decision.command.comment_id)
+			try:
+				comment.refresh()
+			except ClientException as e:
+				return {'error': f"Could not fetch comment with ID: {decision.command.comment_id}"}
 			comment.reply(decision.command.reply)
 			return {'result': 'Reply posted successfully'}
 		elif isinstance(decision.command, ShowConversationWithNewActivity):
