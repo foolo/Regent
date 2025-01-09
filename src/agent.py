@@ -150,7 +150,9 @@ def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: Reddit, int
 	else:
 		state = AgentState(history=[])
 
-	initial_prompt = "\n".join([
+	system_prompt = "\n".join([
+	    agent_info.agent_description,
+	    "",
 	    "To acheive your goals, you can interact with Reddit users by replying to comments, creating posts, and more.",
 	    "Respond with the command and parameters you want to execute. Also provide a motivation behind the action, and any future steps you plan to take, to help keep track of your strategy.",
 	    "You can work in many steps, and the system will remember your previous actions and responses.",
@@ -166,20 +168,17 @@ def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: Reddit, int
 	    "  create_post SUBREDDIT TITLE TEXT  # Create a post in the given subreddit (excluding 'r/') with the given title and text",
 	])
 
-	system_prompt = "\n".join([
-	    agent_info.agent_description,
-	])
 	print("System prompt:")
 	print(system_prompt)
 
 	while True:
 		print("Prompt:")
 		if len(state.history) == 0:
-			print(initial_prompt)
+			print("(No history)")
 		else:
 			print(state.history[-1].action_result)
 
-		model_action = provider.get_action(system_prompt, initial_prompt, state.history)
+		model_action = provider.get_action(system_prompt, state.history)
 		if model_action is None:
 			logger.error("Failed to get action")
 			continue
