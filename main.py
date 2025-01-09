@@ -6,7 +6,7 @@ import sys
 import yaml
 from praw import Reddit
 
-from src.agent import run_agent
+from src.agent import Agent
 from src.reddit_config_loader import load_reddit_config
 from src.pydantic_models.agent_info import AgentInfo
 from src.providers.openai_provider import OpenAIProvider
@@ -75,7 +75,8 @@ def run():
 
 	interactive: bool = args.interactive
 	iteration_interval: int = args.iteration_interval
-	run_agent(agent_info, provider, reddit, interactive, iteration_interval)
+	agent = Agent(agent_info, provider, reddit)
+	agent.run(interactive, iteration_interval)
 
 
 if __name__ == '__main__':
