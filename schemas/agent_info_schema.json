@@ -48,6 +48,7 @@
 				"reply_style",
 				"post_style",
 				"reply_delay_minutes",
+				"max_post_age_for_replying_hours",
 				"minimum_time_between_posts_hours"
 			],
 			"properties": {
@@ -70,6 +71,10 @@
 				"reply_delay_minutes": {
 					"type": "integer",
 					"description": "The minimum time in minutes before the agent will reply to a comment."
+				},
+				"max_post_age_for_replying_hours": {
+					"type": "integer",
+					"description": "The maximum age of a post in hours that the agent will reply to."
 				},
 				"minimum_time_between_posts_hours": {
 					"type": "integer",

@@ -1,15 +1,16 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import json
 import logging
 import os
+import queue
 import sys
 import threading
 import time
 from praw import Reddit
 from praw.models import Redditor, Comment, Submission
 from praw.exceptions import ClientException
-from src.providers.response_models import Action, CreateSubmission, ReplyToComment, ShowConversationWithNewActivity, ShowUsername
-from src.pydantic_models.agent_state import AgentState, HistoryItem
+from src.providers.response_models import Action, CreateSubmission, ReplyToComment, ShowConversationWithNewActivity, ShowNewSubmission, ShowUsername
+from src.pydantic_models.agent_state import AgentState, HistoryItem, StreamedSubmission
 from src.reddit_utils import get_comment_chain
 from src.providers.base_provider import BaseProvider
 from src.pydantic_models.agent_info import AgentInfo
@@ -34,7 +35,7 @@ class Agent:
 				whole_file_as_string = f.read()
 				self.state = AgentState.model_validate_json(whole_file_as_string)
 		else:
-			self.state = AgentState(history=[])
+			self.state = AgentState(history=[], streamed_submissions=[], streamed_submissions_until_timestamp=datetime.fromtimestamp(0, timezone.utc))
 
 		self.state_filename = state_filename
 		self.agent_info = agent_info
@@ -42,6 +43,7 @@ class Agent:
 		self.reddit = reddit
 		self.test_mode = test_mode
 		self.iteration_interval = iteration_interval
+		self.submission_queue: queue.Queue[Submission] = queue.Queue()
 
 	def get_current_user(self) -> Redditor:
 		current_user = self.reddit.user.me()
@@ -88,57 +90,63 @@ class Agent:
 
 		return conversation_struct
 
-	def handle_submissions(self, subreddits: list[str]):
-		def handle_submission(s: Submission):
-			logger.info(f"Handle post from: {s.author}, Title: {s.title}, Text: {s.selftext}")
-			system_prompt = [
-			    self.agent_info.agent_description + "\n",
-			    f"You are looking at a post on Reddit, in the subreddit r/{s.subreddit.display_name}",
-			    f"Your task is to first determine whether the post needs a reply.",
-			    self.agent_info.behavior.post_reply_needed_classification,
-			    "If a reply is needed, set the 'reply_needed' field to true and provide a reply in the 'body' field. Otherwise set the 'reply_needed' field to false and leave the 'body' field undefined.",
-			    self.agent_info.behavior.reply_style,
-			]
+	def stream_submissions_to_state(self):
+		while True:
+			try:
+				s = self.submission_queue.get_nowait()
+				if s.created_utc <= self.state.streamed_submissions_until_timestamp.timestamp():
+					logger.info(f"Skipping post older than {self.state.streamed_submissions_until_timestamp}: {s.title}")
+				else:
+					self.state.streamed_submissions_until_timestamp = datetime.fromtimestamp(s.created_utc, timezone.utc)
+					self.state.streamed_submissions.append(StreamedSubmission(id=s.id, timestamp=datetime.fromtimestamp(s.created_utc, timezone.utc)))
+			except queue.Empty:
+				break
+			submissions_newer_than_max_age = []
+			for s in self.state.streamed_submissions:
+				if s.timestamp > datetime.now(timezone.utc) - timedelta(hours=self.agent_info.behavior.max_post_age_for_replying_hours):
+					submissions_newer_than_max_age.append(s)
+				else:
+					logger.info(f"Removing post older than {self.agent_info.behavior.max_post_age_for_replying_hours} hours: {s.timestamp}")
+			self.state.streamed_submissions = submissions_newer_than_max_age
+		self.save_state()
 
-			prompt = [
-			    "The post is as follows:",
-			    json.dumps({
-			        'author': get_author_name(s.author.name),
-			        'title': s.title,
-			        'text': s.selftext
-			    }, indent=1),
-			]
-			logger.info("System prompt:")
-			logger.info(system_prompt)
-			logger.info("Prompt:")
-			logger.info(prompt)
-			response = self.provider.generate_comment("\n".join(system_prompt), "\n".join(prompt))
-			if response is None:
-				logger.error("Failed to generate a response")
-				return
-			logger.info(f"Response:")
-			logger.info(response)
-			if response.reply_needed:
-				if not response.body or response.body == "":
-					logger.error("Reply needed but no body provided")
-					return
-				delay_seconds = self.agent_info.behavior.reply_delay_minutes * 60
-				logger.info(f"Posting reply in {delay_seconds} seconds...")
-				time.sleep(delay_seconds)
-				s.reply(response.body)
-				logger.info("Reply posted")
-
+	def handle_submissions(self):
+		subreddits = [subreddit.name for subreddit in self.agent_info.active_on_subreddits]
 		subreddit = self.reddit.subreddit("+".join(subreddits))
-		print(f"Monitoring subreddit: {subreddit.display_name}")
-		for s in subreddit.stream.submissions(skip_existing=True):
+		logger.info(f"Monitoring subreddit: {subreddit.display_name}")
+		for s in subreddit.stream.submissions():
 			if s.author == self.get_current_user():
-				print(f"Skipping own post: {s.title}")
+				logger.debug(f"Skipping own post: {s.id}, {s.title}")
+				continue
+			if s.selftext == "":
+				logger.debug(f"Skipping post without text: {s.id}, {s.title}")
+				continue
+			timestamp = datetime.fromtimestamp(s.created_utc, timezone.utc)
+			max_post_age_for_replying_hours = self.agent_info.behavior.max_post_age_for_replying_hours
+			if timestamp < datetime.now(timezone.utc) - timedelta(hours=max_post_age_for_replying_hours):
+				logger.debug(f"Skipping post older than {max_post_age_for_replying_hours} hours: {timestamp} {s.id}, {s.title}")
 			else:
-				threading.Thread(target=handle_submission, args=(s, )).start()
+				logger.debug(f"Queuing new post: {timestamp} {s.id}, {s.title}")
+				self.submission_queue.put(s)
 
 	def handle_model_action(self, decision: Action) -> dict:
 		if isinstance(decision.command, ShowUsername):
 			return {'username': self.get_current_user().name}
+		elif isinstance(decision.command, ShowNewSubmission):
+			self.stream_submissions_to_state()
+			if len(self.state.streamed_submissions) == 0:
+				return {'note': 'No new submissions'}
+
+			latest_submission = self.reddit.submission(self.state.streamed_submissions[-1].id)
+			del self.state.streamed_submissions[-1]
+			return {
+			    'submission': {
+			        'id': latest_submission.id,
+			        'author': get_author_name(latest_submission),
+			        'title': latest_submission.title,
+			        'text': latest_submission.selftext,
+			    }
+			}
 		elif isinstance(decision.command, ReplyToComment):
 			comment = self.reddit.comment(decision.command.comment_id)
 			try:
@@ -175,10 +183,13 @@ class Agent:
 		    f"Unread messages in inbox: {unread_messages}",
 		])
 
+	def save_state(self):
+		with open(self.state_filename, 'w') as f:
+			f.write(self.state.model_dump_json(indent=2))
+
 	def run(self):
-		# subreddits = [subreddit.name for subreddit in agent_info.active_on_subreddits]
-		# stream_submissions_thread = threading.Thread(target=handle_submissions, args=(reddit, subreddits, agent_info, provider))
-		# stream_submissions_thread.start()
+		stream_submissions_thread = threading.Thread(target=self.handle_submissions)
+		stream_submissions_thread.start()
 
 		system_prompt = "\n".join([
 		    self.agent_info.agent_description,
@@ -192,6 +203,7 @@ class Agent:
 		    "",
 		    "Available commands:",
 		    "  show_my_username  # Show your username",
+		    "  show_new_submission  # Show the newest submission in the monitored subreddits",
 		    "  show_conversation_with_new_activity  # If you have new comments in your inbox, show the whole conversation for the newest one",
 		    "  reply_to_comment COMMENT_ID REPLY  # Reply to a comment with the given ID. You can get the comment IDs from the inbox",
 		    "  create_post SUBREDDIT TITLE TEXT  # Create a post in the given subreddit (excluding 'r/') with the given title and text",
@@ -234,10 +246,10 @@ class Agent:
 
 			action_result = self.handle_model_action(model_action)
 
-			self.state.history.append(HistoryItem(
-			    model_action=json.dumps(model_action.model_dump()),
-			    action_result=json.dumps(action_result),
-			))
+			self.state.history.append(
+			    HistoryItem(
+			        model_action=json.dumps(model_action.model_dump(), ensure_ascii=False),
+			        action_result=json.dumps(action_result, ensure_ascii=False),
+			    ))
 
-			with open(self.state_filename, 'w') as f:
-				f.write(self.state.model_dump_json(indent=2))
+			self.save_state()

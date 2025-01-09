@@ -31,6 +31,10 @@ class Behavior(BaseModel):
         ...,
         description='The minimum time in minutes before the agent will reply to a comment.',
     )
+    max_post_age_for_replying_hours: int = Field(
+        ...,
+        description='The maximum age of a post in hours that the agent will reply to.',
+    )
     minimum_time_between_posts_hours: int = Field(
         ...,
         description="The minimum time since the agent's last posts in hours before it will make another post.",

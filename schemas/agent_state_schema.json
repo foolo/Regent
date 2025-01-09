@@ -4,7 +4,9 @@
 	"type": "object",
 	"title": "AgentState",
 	"required": [
-		"history"
+		"history",
+		"streamed_submissions",
+		"streamed_submissions_until_timestamp"
 	],
 	"properties": {
 		"history": {
@@ -27,6 +29,33 @@
 					}
 				}
 			}
+		},
+		"streamed_submissions": {
+			"type": "string",
+			"description": "The submissions that have been streamed to the state",
+			"items": {
+				"type": "object",
+				"required": [
+					"id",
+					"timestamp"
+				],
+				"properties": {
+					"id": {
+						"type": "string",
+						"description": "The id of the submission"
+					},
+					"timestamp": {
+						"type": "string",
+						"format": "date-time",
+						"description": "The timestamp of the submission"
+					}
+				}
+			}
+		},
+		"streamed_submissions_until_timestamp": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The timestamp until which submissions have been streamed to the agent state"
 		}
 	}
 }
