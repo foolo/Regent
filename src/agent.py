@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 import logging
 import os
@@ -137,6 +137,13 @@ def handle_model_action(decision: Action, reddit: Reddit, agent_info: AgentInfo,
 		return {'error': 'Invalid command'}
 
 
+def generate_dashboard(agent_info: AgentInfo, reddit: Reddit, provider: BaseProvider):
+	unread_messages = len(list_inbox(reddit))
+	return "\n".join([
+	    f"Unread messages in inbox: {unread_messages}",
+	])
+
+
 def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: Reddit, interactive: bool, iteration_interval: int):
 	# subreddits = [subreddit.name for subreddit in agent_info.active_on_subreddits]
 	# stream_submissions_thread = threading.Thread(target=handle_submissions, args=(reddit, subreddits, agent_info, provider))
@@ -154,6 +161,7 @@ def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: Reddit, int
 	    agent_info.agent_description,
 	    "",
 	    "To acheive your goals, you can interact with Reddit users by replying to comments, creating posts, and more.",
+	    "You will be provided with a list of available commands, the recent command history, and a dashboard of the current state (e.g. number of messages in inbox).",
 	    "Respond with the command and parameters you want to execute. Also provide a motivation behind the action, and any future steps you plan to take, to help keep track of your strategy.",
 	    "You can work in many steps, and the system will remember your previous actions and responses.",
 	    "Only use comment IDs you have received from earlier actions. Don't use random comment IDs. If you don't have any comment IDs, you can use the 'show_inbox' command to get some.",
@@ -178,7 +186,17 @@ def run_agent(agent_info: AgentInfo, provider: BaseProvider, reddit: Reddit, int
 		else:
 			print(state.history[-1].action_result)
 
-		model_action = provider.get_action(system_prompt, state.history)
+		dashboard_message = "\n".join([
+		    "Dashboard:",
+		    generate_dashboard(agent_info, reddit, provider),
+		    "",
+		    "Now you can enter your action:",
+		])
+
+		print("Dashboard message:")
+		print(dashboard_message)
+
+		model_action = provider.get_action(system_prompt, state.history, dashboard_message)
 		if model_action is None:
 			logger.error("Failed to get action")
 			continue

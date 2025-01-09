@@ -15,5 +15,5 @@ class BaseProvider(ABC):
 		pass
 
 	@abstractmethod
-	def get_action(self, system_prompt: str, history: List[HistoryItem]) -> Action | None:
+	def get_action(self, system_prompt: str, history: List[HistoryItem], trailing_prompt: str) -> Action | None:
 		pass
