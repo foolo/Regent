@@ -264,6 +264,10 @@ class Agent:
 			self.fmtlog.header(3, "Dashboard message:")
 			self.fmtlog.code(dashboard_message)
 
+			if self.test_mode:
+				print("Press enter to continue...", file=sys.stderr)
+				input("")
+
 			model_action = self.provider.get_action(system_prompt, self.state.history, dashboard_message)
 			if model_action is None:
 				self.fmtlog.text("Error: Could not get model action.")
