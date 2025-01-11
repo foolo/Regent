@@ -5,6 +5,7 @@ import queue
 import sys
 import threading
 import time
+import yaml
 from src.log_config import logger
 from praw import Reddit
 from praw.models import Redditor, Comment, Submission
@@ -26,6 +27,14 @@ def get_author_name(item: Comment | Submission) -> str:
 
 def get_latest_submission(current_user: Redditor) -> Submission | None:
 	return next(current_user.submissions.new(limit=1))
+
+
+def display_json(json_str: str) -> str:
+	try:
+		obj = json.loads(json_str)
+		return yaml.dump(obj, default_flow_style=False)
+	except json.JSONDecodeError:
+		return json_str
 
 
 class Agent:
@@ -249,9 +258,9 @@ class Agent:
 		self.fmtlog.header(3, "History:")
 		for history_item in self.state.history:
 			self.fmtlog.header(4, f"Action:")
-			self.fmtlog.code(history_item.model_action)
+			self.fmtlog.code(display_json(history_item.model_action))
 			self.fmtlog.header(4, "Result:")
-			self.fmtlog.code(history_item.action_result)
+			self.fmtlog.code(display_json(history_item.action_result))
 
 		while True:
 			dashboard_message = "\n".join([
@@ -274,7 +283,7 @@ class Agent:
 				continue
 
 			self.fmtlog.header(3, f"Model action: {model_action.command.literal}")
-			self.fmtlog.code(model_action.model_dump())
+			self.fmtlog.code(yaml.dump(model_action.model_dump(), default_flow_style=False))
 
 			if self.test_mode:
 				print("Press enter to continue...", file=sys.stderr)
@@ -284,7 +293,7 @@ class Agent:
 
 			action_result = self.handle_model_action(model_action)
 			self.fmtlog.header(3, "Action result:")
-			self.fmtlog.code(action_result)
+			self.fmtlog.code(yaml.dump(action_result, default_flow_style=False))
 
 			self.state.history.append(
 			    HistoryItem(
