@@ -38,13 +38,18 @@ def load_config(path: str):
 
 
 def run():
-	logger.setLevel(logging.INFO)
 	parser = argparse.ArgumentParser()
 	parser.add_argument("agent_schema", type=argparse.FileType('r'))
 	parser.add_argument("provider", type=str)
 	parser.add_argument("--test_mode", action="store_true", help="Run the agent in test mode. Enables confirmation before each action. Inbox comments are not marked as read.")
 	parser.add_argument("--iteration_interval", type=int, default=60, help="The interval in seconds between agent iterations.")
+	parser.add_argument("--log_level", type=str, default="INFO", help="Set the log level. Default: INFO")
 	args = parser.parse_args()
+
+	log_level = logging.getLevelNamesMapping().get(args.log_level)
+	if log_level is None:
+		raise ValueError(f"Invalid log level: {args.log_level}")
+	logger.setLevel(log_level)
 
 	reddit = initialize_reddit()
 
