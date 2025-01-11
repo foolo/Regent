@@ -6,13 +6,12 @@ import sys
 import yaml
 from praw import Reddit
 
+from src.log_config import logger
 from src.agent import Agent
 from src.reddit_config_loader import load_reddit_config
 from src.pydantic_models.agent_config import AgentConfig
 from src.providers.openai_provider import OpenAIProvider
 from src.pydantic_models.openai_config import OpenAIConfig
-
-logger = logging.getLogger(__name__)
 
 
 def initialize_reddit():
@@ -39,12 +38,7 @@ def load_config(path: str):
 
 
 def run():
-	logging.basicConfig(
-	    level=logging.INFO,
-	    style='{',
-	    format='{levelname:8} {message}',
-	    datefmt='%Y-%m-%d %H:%M:%S',
-	)
+	logger.setLevel(logging.INFO)
 	parser = argparse.ArgumentParser()
 	parser.add_argument("agent_schema", type=argparse.FileType('r'))
 	parser.add_argument("provider", type=str)

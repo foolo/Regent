@@ -1,11 +1,11 @@
 from datetime import datetime, timedelta, timezone
 import json
-import logging
 import os
 import queue
 import sys
 import threading
 import time
+from src.log_config import logger
 from praw import Reddit
 from praw.models import Redditor, Comment, Submission
 from praw.exceptions import ClientException
@@ -16,8 +16,6 @@ from src.pydantic_models.agent_state import AgentState, HistoryItem, StreamedSub
 from src.reddit_utils import get_comment_chain
 from src.providers.base_provider import BaseProvider
 from src.pydantic_models.agent_config import AgentConfig
-
-logger = logging.getLogger(__name__)
 
 
 def get_author_name(item: Comment | Submission) -> str:
