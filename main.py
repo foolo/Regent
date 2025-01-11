@@ -8,7 +8,7 @@ from praw import Reddit
 
 from src.log_config import logger
 from src.agent import Agent
-from src.reddit_config_loader import load_reddit_config
+from src.reddit_utils import load_reddit_config
 from src.pydantic_models.agent_config import AgentConfig
 from src.providers.openai_provider import OpenAIProvider
 from src.pydantic_models.openai_config import OpenAIConfig
