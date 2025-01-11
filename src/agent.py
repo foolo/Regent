@@ -246,13 +246,14 @@ class Agent:
 		print("System prompt:")
 		print(system_prompt)
 
-		while True:
-			print("Prompt:")
-			if len(self.state.history) == 0:
-				print("(No history)")
-			else:
-				print(self.state.history[-1].action_result)
+		print("History:")
+		for history_item in self.state.history:
+			print(f"Action:")
+			print(history_item.model_action)
+			print("Result:")
+			print(history_item.action_result)
 
+		while True:
 			dashboard_message = "\n".join([
 			    "Dashboard:",
 			    self.generate_dashboard(),
@@ -279,6 +280,8 @@ class Agent:
 				time.sleep(self.iteration_interval)
 
 			action_result = self.handle_model_action(model_action)
+			print("Action result:")
+			print(action_result)
 
 			self.state.history.append(
 			    HistoryItem(
