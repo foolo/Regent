@@ -10,6 +10,7 @@ from praw import Reddit
 from praw.models import Redditor, Comment, Submission
 from praw.exceptions import ClientException
 from prawcore.exceptions import ServerError
+from src.formatted_logger import FormattedLogger
 from src.providers.response_models import Action, CreatePost, ReplyToComment, ReplyToPost, ShowConversationWithNewActivity, ShowNewPost, ShowUsername
 from src.pydantic_models.agent_state import AgentState, HistoryItem, StreamedSubmission
 from src.reddit_utils import get_comment_chain
@@ -45,6 +46,7 @@ class Agent:
 		self.test_mode = test_mode
 		self.iteration_interval = iteration_interval
 		self.submission_queue: queue.Queue[Submission] = queue.Queue()
+		self.fmtlog = FormattedLogger()
 
 	def get_current_user(self) -> Redditor:
 		current_user = self.reddit.user.me()
@@ -68,7 +70,7 @@ class Agent:
 		for item in self.reddit.inbox.unread(limit=None):  # type: ignore
 			if isinstance(item, Comment):
 				if self.test_mode:
-					print(f"Test mode. Not marking comment {item.id} as read")
+					logger.info(f"Test mode. Not marking comment {item.id} as read")
 				else:
 					item.mark_read()
 				return item
@@ -243,15 +245,15 @@ class Agent:
 		    "  create_post SUBREDDIT POST_TITLE POST_TEXT  # Create a post in the given subreddit (excluding 'r/') with the given title and text",
 		])
 
-		print("System prompt:")
-		print(system_prompt)
+		self.fmtlog.header(3, "System prompt:")
+		self.fmtlog.code(system_prompt)
 
-		print("History:")
+		self.fmtlog.header(3, "History:")
 		for history_item in self.state.history:
-			print(f"Action:")
-			print(history_item.model_action)
-			print("Result:")
-			print(history_item.action_result)
+			self.fmtlog.header(4, f"Action:")
+			self.fmtlog.code(history_item.model_action)
+			self.fmtlog.header(4, "Result:")
+			self.fmtlog.code(history_item.action_result)
 
 		while True:
 			dashboard_message = "\n".join([
@@ -261,17 +263,16 @@ class Agent:
 			    "Now you can enter your action:",
 			])
 
-			print("Dashboard message:")
-			print(dashboard_message)
+			self.fmtlog.header(3, "Dashboard message:")
+			self.fmtlog.code(dashboard_message)
 
 			model_action = self.provider.get_action(system_prompt, self.state.history, dashboard_message)
 			if model_action is None:
-				logger.error("Failed to get action")
+				self.fmtlog.text("Error: Could not get model action.")
 				continue
 
-			print("")
-			print(f"Model action: {model_action.command.literal}")
-			print(model_action.model_dump())
+			self.fmtlog.header(3, f"Model action: {model_action.command.literal}")
+			self.fmtlog.code(model_action.model_dump())
 
 			if self.test_mode:
 				print("Press enter to continue...", file=sys.stderr)
@@ -280,8 +281,8 @@ class Agent:
 				time.sleep(self.iteration_interval)
 
 			action_result = self.handle_model_action(model_action)
-			print("Action result:")
-			print(action_result)
+			self.fmtlog.header(3, "Action result:")
+			self.fmtlog.code(action_result)
 
 			self.state.history.append(
 			    HistoryItem(

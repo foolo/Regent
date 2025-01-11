@@ -3,6 +3,7 @@
 ```bash
 pip install praw
 pip install pyyaml
+pip install colorama
 
 pip install openai   #if using OpenAI model
 ```
