@@ -220,10 +220,14 @@ class Agent:
 			return {'error': 'Invalid command'}
 
 	def generate_dashboard(self):
-		unread_messages = len(self.list_inbox())
-		return "\n".join([
-		    f"Unread messages in inbox: {unread_messages}",
-		])
+		try:
+			unread_messages = len(self.list_inbox())
+			return "\n".join([
+			    f"Unread messages in inbox: {unread_messages}",
+			])
+		except Exception as e:
+			logger.exception(f"Error generating dashboard: {e}")
+			return "Error generating dashboard"
 
 	def save_state(self):
 		with open(self.state_filename, 'w') as f:
