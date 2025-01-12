@@ -5,7 +5,7 @@ import sys
 import time
 from praw import Reddit
 
-from src.reddit_config_loader import REDDIT_CONFIG_FILENAME, load_reddit_config
+from src.reddit_utils import REDDIT_CONFIG_FILENAME, load_reddit_config
 
 # Modified from https://praw.readthedocs.io/en/stable/tutorials/refresh_token.html#obtaining-refresh-tokens
 
