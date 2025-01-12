@@ -266,8 +266,6 @@ class Agent:
 			dashboard_message = "\n".join([
 			    "Dashboard:",
 			    self.generate_dashboard(),
-			    "",
-			    "Now you can enter your action:",
 			])
 
 			self.fmtlog.header(3, "Dashboard message:")
