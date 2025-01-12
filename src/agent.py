@@ -256,6 +256,8 @@ class Agent:
 		self.fmtlog.code(system_prompt)
 
 		self.fmtlog.header(3, "History:")
+		if len(self.state.history) == 0:
+			self.fmtlog.text("No history yet.")
 		for history_item in self.state.history:
 			self.fmtlog.header(4, f"Action:")
 			self.fmtlog.code(display_json(history_item.model_action))
