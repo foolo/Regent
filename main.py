@@ -4,7 +4,7 @@ import logging
 import os
 import sys
 import yaml
-from praw import Reddit
+from praw import Reddit  # type: ignore
 
 from src.log_config import logger
 from src.agent import Agent

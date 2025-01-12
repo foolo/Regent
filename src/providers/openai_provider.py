@@ -1,5 +1,5 @@
 import logging
-from typing import List
+from typing import Any
 from openai import OpenAI
 from src.pydantic_models.agent_state import HistoryItem
 from src.providers.response_models import Action
@@ -14,8 +14,8 @@ class OpenAIProvider(BaseProvider):
 		self._client = OpenAI(api_key=config.api_key)
 		self._model = config.model_id
 
-	def get_action(self, system_prompt: str, history: List[HistoryItem], trailing_prompt: str) -> Action | None:
-		messages = []
+	def get_action(self, system_prompt: str, history: list[HistoryItem], trailing_prompt: str) -> Action | None:
+		messages: list[Any] = []
 		messages.append({"role": 'system', "content": system_prompt})
 
 		for turn in history:

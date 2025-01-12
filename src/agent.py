@@ -5,12 +5,13 @@ import queue
 import sys
 import threading
 import time
+from typing import Any
 import yaml
 from src.log_config import logger
-from praw import Reddit
-from praw.models import Redditor, Comment, Submission
-from praw.exceptions import ClientException
-from prawcore.exceptions import ServerError
+from praw import Reddit  # type: ignore
+from praw.models import Redditor, Comment, Submission  # type: ignore
+from praw.exceptions import ClientException  # type: ignore
+from prawcore.exceptions import ServerError  # type: ignore
 from src.formatted_logger import FormattedLogger
 from src.providers.response_models import Action, CreatePost, ReplyToComment, ReplyToPost, ShowConversationWithNewActivity, ShowNewPost, ShowUsername
 from src.pydantic_models.agent_state import AgentState, HistoryItem, StreamedSubmission
@@ -61,8 +62,8 @@ class Agent:
 			raise RuntimeError("No user logged in")
 		return current_user
 
-	def list_inbox(self) -> list[dict]:
-		inbox = []
+	def list_inbox(self) -> list[dict[str, str]]:
+		inbox: list[dict[str, str]] = []
 		for item in self.reddit.inbox.unread(limit=None):  # type: ignore
 			if isinstance(item, Comment):
 				inbox.append({
@@ -83,10 +84,10 @@ class Agent:
 				return item
 		return None
 
-	def show_conversation(self, comment_id: str):
+	def show_conversation(self, comment_id: str) -> dict[str, Any]:
 		comment = self.reddit.comment(comment_id)
 		root_submission, comments = get_comment_chain(comment, self.reddit)
-		conversation_struct = {}
+		conversation_struct: dict[str, Any] = {}
 		conversation_struct['root_post'] = {
 		    'author': get_author_name(root_submission),
 		    'title': root_submission.title,
@@ -111,7 +112,7 @@ class Agent:
 					self.state.streamed_submissions.append(StreamedSubmission(id=s.id, timestamp=datetime.fromtimestamp(s.created_utc, timezone.utc)))
 			except queue.Empty:
 				break
-			submissions_newer_than_max_age = []
+			submissions_newer_than_max_age: list[StreamedSubmission] = []
 			for s in self.state.streamed_submissions:
 				if s.timestamp > datetime.now(timezone.utc) - timedelta(hours=self.agent_config.behavior.max_post_age_for_replying_hours):
 					submissions_newer_than_max_age.append(s)
@@ -138,7 +139,7 @@ class Agent:
 				logger.debug(f"Queuing new post: {timestamp} {s.id}, {s.title}")
 				self.submission_queue.put(s)
 
-	def handle_model_action(self, decision: Action) -> dict:
+	def handle_model_action(self, decision: Action) -> dict[str, Any]:
 		if isinstance(decision.command, ShowUsername):
 			try:
 				username = self.get_current_user().name
@@ -199,7 +200,7 @@ class Agent:
 				logger.exception(f"Error showing conversation. Exception: {e}")
 				return {'error': f"Could not show conversation"}
 			return {'conversation': conversation}
-		elif isinstance(decision.command, CreatePost):
+		elif isinstance(decision.command, CreatePost):  # type: ignore
 			try:
 				current_user = self.get_current_user()
 				latest_submission = get_latest_submission(current_user)

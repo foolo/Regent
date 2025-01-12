@@ -1,6 +1,5 @@
-from enum import Enum
-from typing import Literal, Optional
-from pydantic import BaseModel, Field
+from typing import Literal
+from pydantic import BaseModel
 
 
 class ShowUsername(BaseModel):

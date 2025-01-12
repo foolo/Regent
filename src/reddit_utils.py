@@ -1,7 +1,7 @@
 import os
 import yaml
-from praw import Reddit
-from praw.models import Redditor, Comment, Submission, Message
+from praw import Reddit  # type: ignore
+from praw.models import Comment, Submission  # type: ignore
 from src.pydantic_models.reddit_config import RedditConfig
 
 REDDIT_CONFIG_FILENAME = 'config/reddit_config.yaml'

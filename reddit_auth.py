@@ -3,7 +3,7 @@
 import socket
 import sys
 import time
-from praw import Reddit
+from praw import Reddit  # type: ignore
 
 from src.reddit_utils import REDDIT_CONFIG_FILENAME, load_reddit_config
 
