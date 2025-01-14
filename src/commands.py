@@ -20,13 +20,20 @@ class AgentEnv:
 	test_mode: bool
 
 
+@dataclass
+class CommandInfo:
+	command: Type['Command']
+	parameter_names: list[str]
+	description: str
+
+
 class Command:
-	registry: dict[str, Type['Command']] = {}
+	registry: dict[str, CommandInfo] = {}
 
 	@classmethod
-	def register(cls, name: str):
+	def register(cls, name: str, parameter_names: list[str], description: str):
 		def decorator(command_cls: Type['Command']):
-			cls.registry[name] = command_cls
+			cls.registry[name] = CommandInfo(command=command_cls, parameter_names=parameter_names, description=description)
 			return command_cls
 
 		return decorator
@@ -37,7 +44,7 @@ class Command:
 			raise ValueError(f"Unknown command: {action.command}")
 
 		command_cls = cls.registry[action.command]
-		return command_cls.instance_decode(action.parameters)
+		return command_cls.command.instance_decode(action.parameters)
 
 	@classmethod
 	def instance_decode(cls, args: list[str]) -> 'Command':
@@ -48,7 +55,7 @@ class Command:
 		pass
 
 
-@Command.register("show_username")
+@Command.register("show_username", [], "Show your username")
 @dataclass
 class ShowUsername(Command):
 	@classmethod
@@ -66,7 +73,7 @@ class ShowUsername(Command):
 		return {'username': username}
 
 
-@Command.register("show_new_post")
+@Command.register("show_new_post", [], "Show the newest post in the monitored subreddits")
 @dataclass
 class ShowNewPost(Command):
 	@classmethod
@@ -95,7 +102,7 @@ class ShowNewPost(Command):
 			return {'error': 'Could not fetch new post'}
 
 
-@Command.register("show_conversation_with_new_activity")
+@Command.register("show_conversation_with_new_activity", [], "If you have new comments in your inbox, show the whole conversation for the newest one")
 @dataclass
 class ShowConversationWithNewActivity(Command):
 	@classmethod
@@ -116,7 +123,8 @@ class ShowConversationWithNewActivity(Command):
 		return {'conversation': conversation}
 
 
-@Command.register("reply_to_content")
+@Command.register("reply_to_content", ['CONTENT_ID', 'REPLY_TEXT'],
+                  "Reply to a post or comment with the given ID. You can get the comment IDs from the inbox, and post IDs from the 'show_new_post' command")
 @dataclass
 class ReplyToContent(Command):
 	content_id: str
@@ -159,7 +167,7 @@ class ReplyToContent(Command):
 			return {'error': f"Invalid content ID: {self.content_id}"}
 
 
-@Command.register("create_post")
+@Command.register("create_post", ['SUBREDDIT', 'POST_TITLE', 'POST_TEXT'], "Create a post in the given subreddit (excluding 'r/') with the given title and text")
 @dataclass
 class CreatePost(Command):
 	subreddit: str

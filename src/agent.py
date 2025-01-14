@@ -107,6 +107,12 @@ class Agent:
 		with open(self.state_filename, 'w') as f:
 			f.write(self.state.model_dump_json(indent=2))
 
+	def get_command_list(self) -> list[str]:
+		commands: list[str] = []
+		for command_name, command_info in Command.registry.items():
+			commands.append(f"{command_name} {' '.join(command_info.parameter_names)}  # {command_info.description}")
+		return commands
+
 	def run(self):
 		stream_submissions_thread = threading.Thread(target=self.handle_submissions)
 		stream_submissions_thread.start()
@@ -121,12 +127,7 @@ class Agent:
 		    "Only use comment IDs you have received from earlier actions. Don't use random comment IDs.",
 		    "",
 		    "Available commands:",
-		    "  show_username  # Show your username",
-		    "  show_new_post  # Show the newest post in the monitored subreddits",
-		    "  show_conversation_with_new_activity  # If you have new comments in your inbox, show the whole conversation for the newest one",
-		    "  reply_to_content CONTENT_ID REPLY_TEXT  # Reply to a post or comment with the given ID. You can get the comment IDs from the inbox, and post IDs from the 'show_new_post' command",
-		    "  create_post SUBREDDIT POST_TITLE POST_TEXT  # Create a post in the given subreddit (excluding 'r/') with the given title and text",
-		])
+		] + self.get_command_list())
 
 		self.fmtlog.header(3, "System prompt:")
 		self.fmtlog.code(system_prompt)
