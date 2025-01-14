@@ -131,7 +131,7 @@ class ReplyToContent(Command):
 	reply_text: str
 
 	@classmethod
-	def instance_decode(cls, args: list[str]) -> 'ShowUsername':
+	def instance_decode(cls, args: list[str]) -> 'ReplyToContent':
 		if len(args) != 2:
 			raise ValueError(f"show_username requires 2 arguments, got {len(args)}")
 		return cls(content_id=args[0], reply_text=args[1])
