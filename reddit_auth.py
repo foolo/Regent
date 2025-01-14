@@ -9,7 +9,7 @@ from src.reddit_utils import REDDIT_CONFIG_FILENAME, load_reddit_config
 
 # Modified from https://praw.readthedocs.io/en/stable/tutorials/refresh_token.html#obtaining-refresh-tokens
 
-SCOPES = ["identity", "submit", "read", "privatemessages"]
+SCOPES = ["identity", "submit", "read", "privatemessages", "history"]
 
 
 def retrieve_refresh_token() -> int:

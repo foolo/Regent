@@ -1,7 +1,14 @@
 from abc import ABC, abstractmethod
 
-from src.providers.response_models import Action
+from pydantic import BaseModel
+
 from src.pydantic_models.agent_state import HistoryItem
+
+
+class Action(BaseModel):
+	command: str
+	parameters: list[str]
+	motivation_behind_the_action: str
 
 
 class BaseProvider(ABC):

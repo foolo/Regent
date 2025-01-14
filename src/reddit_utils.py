@@ -1,8 +1,10 @@
 import os
+from typing import Any
 import yaml
 from praw import Reddit  # type: ignore
-from praw.models import Comment, Submission  # type: ignore
+from praw.models import Comment, Submission, Redditor  # type: ignore
 from src.pydantic_models.reddit_config import RedditConfig
+from src.log_config import logger
 
 REDDIT_CONFIG_FILENAME = 'config/reddit_config.yaml'
 
@@ -35,3 +37,50 @@ def get_comment_chain(comment: Comment, reddit: Reddit) -> tuple[Submission, lis
 		return submission, [comment]
 	else:
 		raise ValueError(f"Invalid parent_id: {comment.parent_id}")
+
+
+def get_author_name(item: Comment | Submission) -> str:
+	if not item.author:
+		return "[unknown/deleted]"
+	return item.author.name
+
+
+def get_latest_submission(current_user: Redditor) -> Submission | None:
+	submissions_iter = current_user.submissions.new(limit=1)
+	return next(submissions_iter)
+
+
+def get_current_user(reddit: Reddit) -> Redditor:
+	current_user = reddit.user.me()
+	if not current_user:
+		raise RuntimeError("No user logged in")
+	return current_user
+
+
+def pop_comment_from_inbox(reddit: Reddit, test_mode: bool) -> Comment | None:
+	for item in reddit.inbox.unread(limit=None):  # type: ignore
+		if isinstance(item, Comment):
+			if test_mode:
+				logger.info(f"Test mode. Not marking comment {item.id} as read")
+			else:
+				item.mark_read()
+			return item
+	return None
+
+
+def show_conversation(reddit: Reddit, comment_id: str) -> dict[str, Any]:
+	comment = reddit.comment(comment_id)
+	root_submission, comments = get_comment_chain(comment, reddit)
+	conversation_struct: dict[str, Any] = {}
+	conversation_struct['root_post'] = {
+	    'author': get_author_name(root_submission),
+	    'title': root_submission.title,
+	    'text': root_submission.selftext,
+	}
+	conversation_struct['comments'] = [{
+	    'author': get_author_name(comment),
+	    'text': comment.body,
+	    'content_id': COMMENT_PREFIX + comment.id,
+	} for comment in comments]
+
+	return conversation_struct

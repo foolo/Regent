@@ -2,8 +2,7 @@ import logging
 from typing import Any
 from openai import OpenAI
 from src.pydantic_models.agent_state import HistoryItem
-from src.providers.response_models import Action
-from src.providers.base_provider import BaseProvider
+from src.providers.base_provider import Action, BaseProvider
 from src.pydantic_models.openai_config import OpenAIConfig
 
 logger = logging.getLogger(__name__)

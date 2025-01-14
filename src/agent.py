@@ -5,29 +5,16 @@ import queue
 import sys
 import threading
 import time
-from typing import Any
 import yaml
 from src.log_config import logger
 from praw import Reddit  # type: ignore
-from praw.models import Redditor, Comment, Submission  # type: ignore
-from praw.exceptions import ClientException  # type: ignore
-from prawcore.exceptions import ServerError  # type: ignore
+from praw.models import Comment, Submission  # type: ignore
 from src.formatted_logger import FormattedLogger
-from src.providers.response_models import Action, CreatePost, ReplyToContent, ShowConversationWithNewActivity, ShowNewPost, ShowUsername
+from src.commands import AgentEnv, Command
 from src.pydantic_models.agent_state import AgentState, HistoryItem, StreamedSubmission
-from src.reddit_utils import COMMENT_PREFIX, SUBMISSION_PREFIX, get_comment_chain
+from src.reddit_utils import COMMENT_PREFIX, get_author_name, get_current_user
 from src.providers.base_provider import BaseProvider
 from src.pydantic_models.agent_config import AgentConfig
-
-
-def get_author_name(item: Comment | Submission) -> str:
-	if not item.author:
-		return "[unknown/deleted]"
-	return item.author.name
-
-
-def get_latest_submission(current_user: Redditor) -> Submission | None:
-	return next(current_user.submissions.new(limit=1))
 
 
 def display_json(json_str: str) -> str:
@@ -56,12 +43,6 @@ class Agent:
 		self.submission_queue: queue.Queue[Submission] = queue.Queue()
 		self.fmtlog = FormattedLogger()
 
-	def get_current_user(self) -> Redditor:
-		current_user = self.reddit.user.me()
-		if not current_user:
-			raise RuntimeError("No user logged in")
-		return current_user
-
 	def list_inbox(self) -> list[dict[str, str]]:
 		inbox: list[dict[str, str]] = []
 		for item in self.reddit.inbox.unread(limit=None):  # type: ignore
@@ -73,33 +54,6 @@ class Agent:
 				    'body': item.body,
 				})
 		return inbox
-
-	def pop_comment_from_inbox(self) -> Comment | None:
-		for item in self.reddit.inbox.unread(limit=None):  # type: ignore
-			if isinstance(item, Comment):
-				if self.test_mode:
-					logger.info(f"Test mode. Not marking comment {item.id} as read")
-				else:
-					item.mark_read()
-				return item
-		return None
-
-	def show_conversation(self, comment_id: str) -> dict[str, Any]:
-		comment = self.reddit.comment(comment_id)
-		root_submission, comments = get_comment_chain(comment, self.reddit)
-		conversation_struct: dict[str, Any] = {}
-		conversation_struct['root_post'] = {
-		    'author': get_author_name(root_submission),
-		    'title': root_submission.title,
-		    'text': root_submission.selftext,
-		}
-		conversation_struct['comments'] = [{
-		    'author': get_author_name(comment),
-		    'text': comment.body,
-		    'content_id': COMMENT_PREFIX + comment.id,
-		} for comment in comments]
-
-		return conversation_struct
 
 	def stream_submissions_to_state(self):
 		while True:
@@ -125,7 +79,7 @@ class Agent:
 		subreddit = self.reddit.subreddit("+".join(self.agent_config.active_on_subreddits))
 		logger.info(f"Monitoring subreddit: {subreddit.display_name}")
 		for s in subreddit.stream.submissions():
-			if s.author == self.get_current_user():
+			if s.author == get_current_user(self.reddit):
 				logger.debug(f"Skipping own post: {s.id}, {s.title}")
 				continue
 			if s.selftext == "":
@@ -138,90 +92,6 @@ class Agent:
 			else:
 				logger.debug(f"Queuing new post: {timestamp} {s.id}, {s.title}")
 				self.submission_queue.put(s)
-
-	def handle_model_action(self, decision: Action) -> dict[str, Any]:
-		if isinstance(decision.command, ShowUsername):
-			try:
-				username = self.get_current_user().name
-			except Exception as e:
-				logger.exception(f"Error getting username. Exception: {e}")
-				return {'error': 'Could not get username'}
-			return {'username': username}
-		elif isinstance(decision.command, ShowNewPost):
-			try:
-				self.stream_submissions_to_state()
-				if len(self.state.streamed_submissions) == 0:
-					return {'note': 'No new submissions'}
-
-				latest_submission = self.reddit.submission(self.state.streamed_submissions[-1].id)
-				del self.state.streamed_submissions[-1]
-				return {
-				    'post': {
-				        'content_id': SUBMISSION_PREFIX + latest_submission.id,
-				        'author': get_author_name(latest_submission),
-				        'title': latest_submission.title,
-				        'text': latest_submission.selftext,
-				    }
-				}
-			except Exception as e:
-				logger.exception(f"Error fetching new post. Exception: {e}")
-				return {'error': 'Could not fetch new post'}
-		elif isinstance(decision.command, ReplyToContent):
-			if decision.command.content_id.startswith(SUBMISSION_PREFIX):
-				try:
-					submission = self.reddit.submission(decision.command.content_id)
-					submission.title  # Check if submission exists
-				except ServerError as e:
-					return {'error': f"Could not fetch post with ID: {decision.command.content_id}"}
-				try:
-					submission.reply(decision.command.reply_text)
-				except Exception as e:
-					logger.exception(f"Error replying to post. Exception: {e}")
-					return {'error': f"Could not reply to post with ID: {decision.command.content_id}"}
-				return {'result': 'Reply posted successfully'}
-			elif decision.command.content_id.startswith(COMMENT_PREFIX):
-				try:
-					comment = self.reddit.comment(decision.command.content_id)
-					comment.refresh()
-				except ClientException as e:
-					return {'error': f"Could not fetch comment with ID: {decision.command.content_id}"}
-				try:
-					comment.reply(decision.command.reply_text)
-				except Exception as e:
-					logger.exception(f"Error replying to comment. Exception: {e}")
-					return {'error': f"Could not reply to comment with ID: {decision.command.content_id}"}
-				return {'result': 'Reply posted successfully'}
-			else:
-				return {'error': f'Invalid content ID: {decision.command.content_id}'}
-		elif isinstance(decision.command, ShowConversationWithNewActivity):
-			try:
-				comment = self.pop_comment_from_inbox()
-				if not comment:
-					return {'note': 'No new comments in inbox'}
-				conversation = self.show_conversation(comment.id)
-			except Exception as e:
-				logger.exception(f"Error showing conversation. Exception: {e}")
-				return {'error': f"Could not show conversation"}
-			return {'conversation': conversation}
-		elif isinstance(decision.command, CreatePost):  # type: ignore
-			try:
-				current_user = self.get_current_user()
-				latest_submission = get_latest_submission(current_user)
-				current_utc = int(time.time())
-				min_post_interval_hrs = self.agent_config.behavior.minimum_time_between_posts_hours
-				if not latest_submission or current_utc > latest_submission.created_utc + min_post_interval_hrs * 3600:
-					self.reddit.subreddit(decision.command.subreddit).submit(decision.command.post_title, selftext=decision.command.post_text)
-					return {'result': 'Post created'}
-				else:
-					return {
-					    'error':
-					    f"Not enough time has passed since the last post, which was published {datetime.fromtimestamp(latest_submission.created_utc)}. Minimum time between posts is {min_post_interval_hrs} hours."
-					}
-			except Exception as e:
-				logger.exception(f"Error creating post. Exception: {e}")
-				return {'error': 'Could not create post'}
-		else:
-			return {'error': 'Invalid command'}
 
 	def generate_dashboard(self):
 		try:
@@ -248,11 +118,10 @@ class Agent:
 		    "You will be provided with a list of available commands, the recent command history, and a dashboard of the current state (e.g. number of messages in inbox).",
 		    "Respond with the command and parameters you want to execute. Also provide a motivation behind the action, and any future steps you plan to take, to help keep track of your strategy.",
 		    "You can work in many steps, and the system will remember your previous actions and responses.",
-		    "Only use comment IDs you have received from earlier actions. Don't use random comment IDs. If you don't have any comment IDs, you can use the 'show_inbox' command to get some.",
-		    "If you want to see the whole conversation from the root post to a comment, use the 'show_conversation_for_comment' command with the comment ID.",
+		    "Only use comment IDs you have received from earlier actions. Don't use random comment IDs.",
 		    "",
 		    "Available commands:",
-		    "  show_my_username  # Show your username",
+		    "  show_username  # Show your username",
 		    "  show_new_post  # Show the newest post in the monitored subreddits",
 		    "  show_conversation_with_new_activity  # If you have new comments in your inbox, show the whole conversation for the newest one",
 		    "  reply_to_content CONTENT_ID REPLY_TEXT  # Reply to a post or comment with the given ID. You can get the comment IDs from the inbox, and post IDs from the 'show_new_post' command",
@@ -289,7 +158,7 @@ class Agent:
 				self.fmtlog.text("Error: Could not get model action.")
 				continue
 
-			self.fmtlog.header(3, f"Model action: {model_action.command.literal}")
+			self.fmtlog.header(3, f"Model action: {model_action.command}")
 			self.fmtlog.code(yaml.dump(model_action.model_dump(), default_flow_style=False))
 
 			if self.test_mode:
@@ -298,7 +167,10 @@ class Agent:
 			else:
 				time.sleep(self.iteration_interval)
 
-			action_result = self.handle_model_action(model_action)
+			self.stream_submissions_to_state()
+
+			command = Command.decode(model_action)
+			action_result = command.execute(AgentEnv(self.reddit, self.state, self.agent_config, self.test_mode))
 			self.fmtlog.header(3, "Action result:")
 			self.fmtlog.code(yaml.dump(action_result, default_flow_style=False))
 
