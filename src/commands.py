@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 import time
-from typing import Any, Dict, List, Type
+from typing import Any, Type
 from src.log_config import logger
 from praw import Reddit  # type: ignore
 from praw.exceptions import ClientException  # type: ignore
@@ -21,7 +21,7 @@ class AgentEnv:
 
 
 class Command:
-	registry: Dict[str, Type['Command']] = {}
+	registry: dict[str, Type['Command']] = {}
 
 	@classmethod
 	def register(cls, name: str):
@@ -40,7 +40,7 @@ class Command:
 		return command_cls.instance_decode(action.parameters)
 
 	@classmethod
-	def instance_decode(cls, args: List[str]) -> 'Command':
+	def instance_decode(cls, args: list[str]) -> 'Command':
 		raise NotImplementedError("Decode method must be implemented by subclasses")
 
 	@abstractmethod
@@ -52,7 +52,7 @@ class Command:
 @dataclass
 class ShowUsername(Command):
 	@classmethod
-	def instance_decode(cls, args: List[str]) -> 'ShowUsername':
+	def instance_decode(cls, args: list[str]) -> 'ShowUsername':
 		if len(args) != 0:
 			raise ValueError(f"show_username requires 0 arguments, got {len(args)}")
 		return cls()
@@ -70,7 +70,7 @@ class ShowUsername(Command):
 @dataclass
 class ShowNewPost(Command):
 	@classmethod
-	def instance_decode(cls, args: List[str]) -> 'ShowNewPost':
+	def instance_decode(cls, args: list[str]) -> 'ShowNewPost':
 		if len(args) != 0:
 			raise ValueError(f"show_new_post requires 0 arguments, got {len(args)}")
 		return cls()
@@ -99,7 +99,7 @@ class ShowNewPost(Command):
 @dataclass
 class ShowConversationWithNewActivity(Command):
 	@classmethod
-	def instance_decode(cls, args: List[str]) -> 'ShowConversationWithNewActivity':
+	def instance_decode(cls, args: list[str]) -> 'ShowConversationWithNewActivity':
 		if len(args) != 0:
 			raise ValueError(f"show_conversation_with_new_activity requires 0 arguments, got {len(args)}")
 		return cls()
@@ -123,7 +123,7 @@ class ReplyToContent(Command):
 	reply_text: str
 
 	@classmethod
-	def instance_decode(cls, args: List[str]) -> 'ShowUsername':
+	def instance_decode(cls, args: list[str]) -> 'ShowUsername':
 		if len(args) != 2:
 			raise ValueError(f"show_username requires 2 arguments, got {len(args)}")
 		return cls(content_id=args[0], reply_text=args[1])
@@ -167,7 +167,7 @@ class CreatePost(Command):
 	post_text: str
 
 	@classmethod
-	def instance_decode(cls, args: List[str]) -> 'CreatePost':
+	def instance_decode(cls, args: list[str]) -> 'CreatePost':
 		if len(args) != 3:
 			raise ValueError(f"create_post requires 3 arguments, got {len(args)}")
 		return cls(subreddit=args[0], post_title=args[1], post_text=args[2])
