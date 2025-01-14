@@ -14,15 +14,9 @@ class ShowConversationWithNewActivity(BaseModel):
 	literal: Literal["show_conversation_with_new_activity"]
 
 
-class ReplyToComment(BaseModel):
-	literal: Literal["reply_to_comment"]
-	comment_id: str
-	reply_text: str
-
-
-class ReplyToPost(BaseModel):
-	literal: Literal["reply_to_post"]
-	post_id: str
+class ReplyToContent(BaseModel):
+	literal: Literal["reply_to_content"]
+	content_id: str
 	reply_text: str
 
 
@@ -35,4 +29,4 @@ class CreatePost(BaseModel):
 
 class Action(BaseModel):
 	motivation_behind_the_action: str
-	command: ShowUsername | ShowNewPost | ReplyToComment | ReplyToPost | ShowConversationWithNewActivity | CreatePost
+	command: ShowUsername | ShowNewPost | ReplyToContent | ShowConversationWithNewActivity | CreatePost

@@ -13,9 +13,9 @@ from praw.models import Redditor, Comment, Submission  # type: ignore
 from praw.exceptions import ClientException  # type: ignore
 from prawcore.exceptions import ServerError  # type: ignore
 from src.formatted_logger import FormattedLogger
-from src.providers.response_models import Action, CreatePost, ReplyToComment, ReplyToPost, ShowConversationWithNewActivity, ShowNewPost, ShowUsername
+from src.providers.response_models import Action, CreatePost, ReplyToContent, ShowConversationWithNewActivity, ShowNewPost, ShowUsername
 from src.pydantic_models.agent_state import AgentState, HistoryItem, StreamedSubmission
-from src.reddit_utils import get_comment_chain
+from src.reddit_utils import COMMENT_PREFIX, SUBMISSION_PREFIX, get_comment_chain
 from src.providers.base_provider import BaseProvider
 from src.pydantic_models.agent_config import AgentConfig
 
@@ -68,7 +68,7 @@ class Agent:
 			if isinstance(item, Comment):
 				inbox.append({
 				    'type': 'comment',
-				    'comment_id': item.id,
+				    'content_id': COMMENT_PREFIX + item.id,
 				    'author': get_author_name(item),
 				    'body': item.body,
 				})
@@ -96,7 +96,7 @@ class Agent:
 		conversation_struct['comments'] = [{
 		    'author': get_author_name(comment),
 		    'text': comment.body,
-		    'comment_id': comment.id,
+		    'content_id': COMMENT_PREFIX + comment.id,
 		} for comment in comments]
 
 		return conversation_struct
@@ -157,7 +157,7 @@ class Agent:
 				del self.state.streamed_submissions[-1]
 				return {
 				    'post': {
-				        'post_id': latest_submission.id,
+				        'content_id': SUBMISSION_PREFIX + latest_submission.id,
 				        'author': get_author_name(latest_submission),
 				        'title': latest_submission.title,
 				        'text': latest_submission.selftext,
@@ -166,30 +166,33 @@ class Agent:
 			except Exception as e:
 				logger.exception(f"Error fetching new post. Exception: {e}")
 				return {'error': 'Could not fetch new post'}
-		elif isinstance(decision.command, ReplyToPost):
-			try:
-				submission = self.reddit.submission(decision.command.post_id)
-				submission.title  # Check if submission exists
-			except ServerError as e:
-				return {'error': f"Could not fetch post with ID: {decision.command.post_id}"}
-			try:
-				submission.reply(decision.command.reply_text)
-			except Exception as e:
-				logger.exception(f"Error replying to post. Exception: {e}")
-				return {'error': f"Could not reply to post with ID: {decision.command.post_id}"}
-			return {'result': 'Reply posted successfully'}
-		elif isinstance(decision.command, ReplyToComment):
-			try:
-				comment = self.reddit.comment(decision.command.comment_id)
-				comment.refresh()
-			except ClientException as e:
-				return {'error': f"Could not fetch comment with ID: {decision.command.comment_id}"}
-			try:
-				comment.reply(decision.command.reply_text)
-			except Exception as e:
-				logger.exception(f"Error replying to comment. Exception: {e}")
-				return {'error': f"Could not reply to comment with ID: {decision.command.comment_id}"}
-			return {'result': 'Reply posted successfully'}
+		elif isinstance(decision.command, ReplyToContent):
+			if decision.command.content_id.startswith(SUBMISSION_PREFIX):
+				try:
+					submission = self.reddit.submission(decision.command.content_id)
+					submission.title  # Check if submission exists
+				except ServerError as e:
+					return {'error': f"Could not fetch post with ID: {decision.command.content_id}"}
+				try:
+					submission.reply(decision.command.reply_text)
+				except Exception as e:
+					logger.exception(f"Error replying to post. Exception: {e}")
+					return {'error': f"Could not reply to post with ID: {decision.command.content_id}"}
+				return {'result': 'Reply posted successfully'}
+			elif decision.command.content_id.startswith(COMMENT_PREFIX):
+				try:
+					comment = self.reddit.comment(decision.command.content_id)
+					comment.refresh()
+				except ClientException as e:
+					return {'error': f"Could not fetch comment with ID: {decision.command.content_id}"}
+				try:
+					comment.reply(decision.command.reply_text)
+				except Exception as e:
+					logger.exception(f"Error replying to comment. Exception: {e}")
+					return {'error': f"Could not reply to comment with ID: {decision.command.content_id}"}
+				return {'result': 'Reply posted successfully'}
+			else:
+				return {'error': f'Invalid content ID: {decision.command.content_id}'}
 		elif isinstance(decision.command, ShowConversationWithNewActivity):
 			try:
 				comment = self.pop_comment_from_inbox()
@@ -251,9 +254,8 @@ class Agent:
 		    "Available commands:",
 		    "  show_my_username  # Show your username",
 		    "  show_new_post  # Show the newest post in the monitored subreddits",
-		    "  reply_to_post POST_ID REPLY_TEXT  # Reply to a post with the given ID. You can get the post IDs via the 'show_new_post' command",
 		    "  show_conversation_with_new_activity  # If you have new comments in your inbox, show the whole conversation for the newest one",
-		    "  reply_to_comment COMMENT_ID REPLY_TEXT  # Reply to a comment with the given ID. You can get the comment IDs from the inbox",
+		    "  reply_to_content CONTENT_ID REPLY_TEXT  # Reply to a post or comment with the given ID. You can get the comment IDs from the inbox, and post IDs from the 'show_new_post' command",
 		    "  create_post SUBREDDIT POST_TITLE POST_TEXT  # Create a post in the given subreddit (excluding 'r/') with the given title and text",
 		])
 

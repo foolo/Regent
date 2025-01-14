@@ -20,17 +20,17 @@ def load_reddit_config():
 	return config
 
 
-comment_prefix = 't1_'
-submission_prefix = 't3_'
+COMMENT_PREFIX = 't1_'
+SUBMISSION_PREFIX = 't3_'
 
 
 def get_comment_chain(comment: Comment, reddit: Reddit) -> tuple[Submission, list[Comment]]:
-	if comment.parent_id.startswith(comment_prefix):
+	if comment.parent_id.startswith(COMMENT_PREFIX):
 		parent_comment = reddit.comment(id=comment.parent_id)
 		root_submission, comments = get_comment_chain(parent_comment, reddit)
 		return root_submission, comments + [comment]
-	elif comment.parent_id.startswith(submission_prefix):
-		id_without_prefix = comment.parent_id[len(submission_prefix):]
+	elif comment.parent_id.startswith(SUBMISSION_PREFIX):
+		id_without_prefix = comment.parent_id[len(SUBMISSION_PREFIX):]
 		submission = reddit.submission(id=id_without_prefix)
 		return submission, [comment]
 	else:
