@@ -36,6 +36,3 @@ class CreatePost(BaseModel):
 class Action(BaseModel):
 	motivation_behind_the_action: str
 	command: ShowUsername | ShowNewPost | ReplyToComment | ReplyToPost | ShowConversationWithNewActivity | CreatePost
-
-	def __str__(self):
-		return f"{self.command} {self.motivation_behind_the_action}"
