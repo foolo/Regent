@@ -96,8 +96,10 @@ class Agent:
 	def generate_dashboard(self):
 		try:
 			unread_messages = len(self.list_inbox())
+			current_username = get_current_user(self.reddit).name
 			return "\n".join([
 			    f"Unread messages in inbox: {unread_messages}",
+			    f"Your username: {current_username}",
 			])
 		except Exception as e:
 			logger.exception(f"Error generating dashboard: {e}")

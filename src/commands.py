@@ -55,24 +55,6 @@ class Command:
 		pass
 
 
-@Command.register("show_username", [], "Show your username")
-@dataclass
-class ShowUsername(Command):
-	@classmethod
-	def instance_decode(cls, args: list[str]) -> 'ShowUsername':
-		if len(args) != 0:
-			raise ValueError(f"show_username requires 0 arguments, got {len(args)}")
-		return cls()
-
-	def execute(self, env: AgentEnv):
-		try:
-			username = get_current_user(env.reddit).name
-		except Exception as e:
-			logger.exception(f"Error getting username. Exception: {e}")
-			return {'error': 'Could not get username'}
-		return {'username': username}
-
-
 @Command.register("show_new_post", [], "Show the newest post in the monitored subreddits")
 @dataclass
 class ShowNewPost(Command):
