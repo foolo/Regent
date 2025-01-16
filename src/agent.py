@@ -12,7 +12,7 @@ from praw.models import Comment, Submission  # type: ignore
 from src.formatted_logger import FormattedLogger
 from src.commands import AgentEnv, Command, time_until_create_post_possible
 from src.pydantic_models.agent_state import AgentState, HistoryItem, StreamedSubmission
-from src.reddit_utils import COMMENT_PREFIX, get_author_name, get_current_user
+from src.reddit_utils import get_current_user, list_inbox
 from src.providers.base_provider import BaseProvider
 from src.pydantic_models.agent_config import AgentConfig
 
@@ -42,18 +42,6 @@ class Agent:
 		self.iteration_interval = iteration_interval
 		self.submission_queue: queue.Queue[Submission] = queue.Queue()
 		self.fmtlog = FormattedLogger()
-
-	def list_inbox(self) -> list[dict[str, str]]:
-		inbox: list[dict[str, str]] = []
-		for item in self.reddit.inbox.unread(limit=None):  # type: ignore
-			if isinstance(item, Comment):
-				inbox.append({
-				    'type': 'comment',
-				    'content_id': COMMENT_PREFIX + item.id,
-				    'author': get_author_name(item),
-				    'body': item.body,
-				})
-		return inbox
 
 	def stream_submissions_to_state(self):
 		while True:
@@ -95,7 +83,7 @@ class Agent:
 
 	def generate_dashboard(self):
 		try:
-			unread_messages = len(self.list_inbox())
+			unread_messages = len(list_inbox(self.reddit))
 			current_username = get_current_user(self.reddit).name
 			return "\n".join([
 			    f"Unread messages in inbox: {unread_messages}",
@@ -110,9 +98,11 @@ class Agent:
 			f.write(self.state.model_dump_json(indent=2))
 
 	def get_command_list(self) -> list[str]:
+		self.stream_submissions_to_state()
 		commands: list[str] = []
 		for command_name, command_info in Command.registry.items():
-			commands.append(f"{command_name} {' '.join(command_info.parameter_names)}  # {command_info.description}")
+			if command_info.command.available(AgentEnv(self.reddit, self.state, self.agent_config, self.test_mode)):
+				commands.append(f"{command_name} {' '.join(command_info.parameter_names)}  # {command_info.description}")
 		return commands
 
 	def wait_until_new_command_available(self):
@@ -121,7 +111,7 @@ class Agent:
 			self.stream_submissions_to_state()
 			if len(self.state.streamed_submissions) > 0:
 				return
-			if len(self.list_inbox()) > 0:
+			if len(list_inbox(self.reddit)) > 0:
 				return
 			if time_until_create_post_possible(self.reddit, self.agent_config) <= 0:
 				return
@@ -138,9 +128,7 @@ class Agent:
 		    "Respond with the command and parameters you want to execute. Also provide a motivation behind the action, and any future steps you plan to take, to help keep track of your strategy.",
 		    "You can work in many steps, and the system will remember your previous actions and responses.",
 		    "Only use comment IDs you have received from earlier actions. Don't use random comment IDs.",
-		    "",
-		    "Available commands:",
-		] + self.get_command_list())
+		])
 
 		self.fmtlog.header(3, "System prompt:")
 		self.fmtlog.code(system_prompt)
@@ -158,7 +146,9 @@ class Agent:
 			dashboard_message = "\n".join([
 			    "Dashboard:",
 			    self.generate_dashboard(),
-			])
+			    "",
+			    "Available commands:",
+			] + self.get_command_list())
 
 			self.fmtlog.header(3, "Dashboard message:")
 			self.fmtlog.code(dashboard_message)

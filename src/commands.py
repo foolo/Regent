@@ -8,7 +8,7 @@ from abc import abstractmethod
 from src.providers.base_provider import Action
 from src.pydantic_models.agent_config import AgentConfig
 from src.pydantic_models.agent_state import AgentState
-from src.reddit_utils import COMMENT_PREFIX, SUBMISSION_PREFIX, get_author_name, get_current_user, get_latest_submission, pop_comment_from_inbox, show_conversation
+from src.reddit_utils import COMMENT_PREFIX, SUBMISSION_PREFIX, get_author_name, get_current_user, get_latest_submission, list_inbox, pop_comment_from_inbox, show_conversation
 from src.utils import seconds_to_dhms
 
 
@@ -54,6 +54,10 @@ class Command:
 	def execute(self, env: AgentEnv) -> dict[str, Any]:
 		pass
 
+	@classmethod
+	def available(cls, env: AgentEnv) -> bool:
+		raise NotImplementedError("Available method must be implemented by subclasses")
+
 
 @Command.register("show_new_post", [], "Show the newest post in the monitored subreddits")
 @dataclass
@@ -83,6 +87,10 @@ class ShowNewPost(Command):
 			logger.exception(f"Error fetching new post. Exception: {e}")
 			return {'error': 'Could not fetch new post'}
 
+	@classmethod
+	def available(cls, env: AgentEnv) -> bool:
+		return len(env.agent_state.streamed_submissions) > 0
+
 
 @Command.register("show_conversation_with_new_activity", [], "If you have new comments in your inbox, show the whole conversation for the newest one")
 @dataclass
@@ -103,6 +111,10 @@ class ShowConversationWithNewActivity(Command):
 			logger.exception(f"Error showing conversation. Exception: {e}")
 			return {'error': f"Could not show conversation"}
 		return {'conversation': conversation}
+
+	@classmethod
+	def available(cls, env: AgentEnv) -> bool:
+		return True
 
 
 @Command.register("reply_to_content", ['CONTENT_ID', 'REPLY_TEXT'],
@@ -148,6 +160,10 @@ class ReplyToContent(Command):
 		else:
 			return {'error': f"Invalid content ID: {self.content_id}"}
 
+	@classmethod
+	def available(cls, env: AgentEnv) -> bool:
+		return len(list_inbox(env.reddit)) > 0
+
 
 def time_until_create_post_possible(reddit: Reddit, agent_config: AgentConfig) -> int:
 	current_user = get_current_user(reddit)
@@ -183,3 +199,7 @@ class CreatePost(Command):
 		except Exception as e:
 			logger.exception(f"Error creating post. Exception: {e}")
 			return {'error': 'Could not create post'}
+
+	@classmethod
+	def available(cls, env: AgentEnv) -> bool:
+		return time_until_create_post_possible(env.reddit, env.agent_config) <= 0

@@ -84,3 +84,16 @@ def show_conversation(reddit: Reddit, comment_id: str) -> dict[str, Any]:
 	} for comment in comments]
 
 	return conversation_struct
+
+
+def list_inbox(reddit: Reddit) -> list[dict[str, str]]:
+	inbox: list[dict[str, str]] = []
+	for item in reddit.inbox.unread(limit=None):  # type: ignore
+		if isinstance(item, Comment):
+			inbox.append({
+			    'type': 'comment',
+			    'content_id': COMMENT_PREFIX + item.id,
+			    'author': get_author_name(item),
+			    'body': item.body,
+			})
+	return inbox
