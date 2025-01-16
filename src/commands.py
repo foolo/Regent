@@ -192,6 +192,8 @@ class CreatePost(Command):
 		try:
 			time_left = time_until_create_post_possible(env.reddit, env.agent_config)
 			if time_left <= 0:
+				if not self.subreddit in env.agent_config.active_on_subreddits:
+					return {'error': f"You are not active on the subreddit: {self.subreddit}"}
 				env.reddit.subreddit(self.subreddit).submit(self.post_title, selftext=self.post_text)
 				return {'result': 'Post created'}
 			else:
