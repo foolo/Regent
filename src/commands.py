@@ -149,6 +149,16 @@ class ReplyToContent(Command):
 			return {'error': f"Invalid content ID: {self.content_id}"}
 
 
+def time_until_create_post_possible(reddit: Reddit, agent_config: AgentConfig) -> int:
+	current_user = get_current_user(reddit)
+	latest_submission = get_latest_submission(current_user)
+	if not latest_submission:
+		return 0
+	current_utc = int(time.time())
+	min_post_interval_hrs = agent_config.behavior.minimum_time_between_posts_hours
+	return int(max(latest_submission.created_utc + min_post_interval_hrs * 3600 - current_utc, 0))
+
+
 @Command.register("create_post", ['SUBREDDIT', 'POST_TITLE', 'POST_TEXT'], "Create a post in the given subreddit (excluding 'r/') with the given title and text")
 @dataclass
 class CreatePost(Command):
@@ -162,24 +172,14 @@ class CreatePost(Command):
 			raise ValueError(f"create_post requires 3 arguments, got {len(args)}")
 		return cls(subreddit=args[0], post_title=args[1], post_text=args[2])
 
-	@staticmethod
-	def time_until_create_post_possible(reddit: Reddit, agent_config: AgentConfig) -> int:
-		current_user = get_current_user(reddit)
-		latest_submission = get_latest_submission(current_user)
-		if not latest_submission:
-			return 0
-		current_utc = int(time.time())
-		min_post_interval_hrs = agent_config.behavior.minimum_time_between_posts_hours
-		return int(max(latest_submission.created_utc + min_post_interval_hrs * 3600 - current_utc, 0))
-
 	def execute(self, env: AgentEnv):
 		try:
-			time_until_create_post_possible = self.time_until_create_post_possible(env.reddit, env.agent_config)
-			if time_until_create_post_possible == 0:
+			time_left = time_until_create_post_possible(env.reddit, env.agent_config)
+			if time_left == 0:
 				env.reddit.subreddit(self.subreddit).submit(self.post_title, selftext=self.post_text)
 				return {'result': 'Post created'}
 			else:
-				return {'error': f"Not enough time has passed since the last post. Time until next post possible: {seconds_to_dhms(time_until_create_post_possible)}"}
+				return {'error': f"Not enough time has passed since the last post. Time until next post possible: {seconds_to_dhms(time_left)}"}
 		except Exception as e:
 			logger.exception(f"Error creating post. Exception: {e}")
 			return {'error': 'Could not create post'}

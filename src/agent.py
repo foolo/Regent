@@ -10,7 +10,7 @@ from src.log_config import logger
 from praw import Reddit  # type: ignore
 from praw.models import Comment, Submission  # type: ignore
 from src.formatted_logger import FormattedLogger
-from src.commands import AgentEnv, Command
+from src.commands import AgentEnv, Command, time_until_create_post_possible
 from src.pydantic_models.agent_state import AgentState, HistoryItem, StreamedSubmission
 from src.reddit_utils import COMMENT_PREFIX, get_author_name, get_current_user
 from src.providers.base_provider import BaseProvider
@@ -115,6 +115,17 @@ class Agent:
 			commands.append(f"{command_name} {' '.join(command_info.parameter_names)}  # {command_info.description}")
 		return commands
 
+	def wait_until_new_command_available(self):
+		while True:
+			time.sleep(self.iteration_interval)
+			self.stream_submissions_to_state()
+			if len(self.state.streamed_submissions) > 0:
+				return
+			if len(self.list_inbox()) > 0:
+				return
+			if time_until_create_post_possible(self.reddit, self.agent_config) <= 0:
+				return
+
 	def run(self):
 		stream_submissions_thread = threading.Thread(target=self.handle_submissions)
 		stream_submissions_thread.start()
@@ -152,10 +163,6 @@ class Agent:
 			self.fmtlog.header(3, "Dashboard message:")
 			self.fmtlog.code(dashboard_message)
 
-			if self.test_mode:
-				print("Press enter to continue...", file=sys.stderr)
-				input("")
-
 			model_action = self.provider.get_action(system_prompt, self.state.history, dashboard_message)
 			if model_action is None:
 				self.fmtlog.text("Error: Could not get model action.")
@@ -167,8 +174,6 @@ class Agent:
 			if self.test_mode:
 				print("Press enter to continue...", file=sys.stderr)
 				input("")
-			else:
-				time.sleep(self.iteration_interval)
 
 			self.stream_submissions_to_state()
 
@@ -184,3 +189,9 @@ class Agent:
 			    ))
 
 			self.save_state()
+
+			if self.test_mode:
+				print("Press enter to continue...", file=sys.stderr)
+				input("")
+			else:
+				self.wait_until_new_command_available()
