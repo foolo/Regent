@@ -106,6 +106,7 @@ class Agent:
 
 	def run(self):
 		stream_submissions_thread = threading.Thread(target=self.handle_submissions)
+		stream_submissions_thread.daemon = True
 		stream_submissions_thread.start()
 
 		system_prompt = "\n".join([
