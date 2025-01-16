@@ -43,10 +43,14 @@ class Agent:
 		self.submission_queue: queue.Queue[Submission] = queue.Queue()
 		self.fmtlog = FormattedLogger()
 
-	def stream_submissions_to_state(self):
+	def stream_submissions_to_state(self, wait_once: bool = False):
 		while True:
 			try:
-				s = self.submission_queue.get_nowait()
+				if wait_once:
+					s = self.submission_queue.get(timeout=10)
+					wait_once = False
+				else:
+					s = self.submission_queue.get_nowait()
 				if s.created_utc <= self.state.streamed_submissions_until_timestamp.timestamp():
 					logger.info(f"Skipping post older than {self.state.streamed_submissions_until_timestamp}: {s.title}")
 				else:
@@ -120,6 +124,7 @@ class Agent:
 		stream_submissions_thread = threading.Thread(target=self.handle_submissions)
 		stream_submissions_thread.daemon = True
 		stream_submissions_thread.start()
+		self.stream_submissions_to_state(wait_once=True)
 
 		system_message = "You are a Reddit AI agent. You use a set of commands to interact with Reddit users. There are commands for replying to comments, creating posts, and more to help you achieve your goals. For each action you take, you also need to provide a motivation behind the action, which can include any future steps you plan to take. This will help you keep track of your strategy and make sure you are working towards your goals. You will be provided with a list of your recent actions, your motivations, and the responses of the actions. You will also be provided with a list of available commands to perform your actions."
 
