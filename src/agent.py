@@ -52,7 +52,7 @@ class Agent:
 				else:
 					s = self.submission_queue.get_nowait()
 				if s.created_utc <= self.state.streamed_submissions_until_timestamp.timestamp():
-					logger.info(f"Skipping post older than {self.state.streamed_submissions_until_timestamp}: {s.title}")
+					logger.debug(f"Skipping post older than {self.state.streamed_submissions_until_timestamp}: {s.title}")
 				else:
 					self.state.streamed_submissions_until_timestamp = datetime.fromtimestamp(s.created_utc, timezone.utc)
 					self.state.streamed_submissions.append(StreamedSubmission(id=s.id, timestamp=datetime.fromtimestamp(s.created_utc, timezone.utc)))
