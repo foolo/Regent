@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from datetime import datetime
 import time
 from typing import Any, Type
 from src.log_config import logger
@@ -10,6 +9,7 @@ from src.providers.base_provider import Action
 from src.pydantic_models.agent_config import AgentConfig
 from src.pydantic_models.agent_state import AgentState
 from src.reddit_utils import COMMENT_PREFIX, SUBMISSION_PREFIX, get_author_name, get_current_user, get_latest_submission, pop_comment_from_inbox, show_conversation
+from src.utils import seconds_to_dhms
 
 
 @dataclass
@@ -162,20 +162,24 @@ class CreatePost(Command):
 			raise ValueError(f"create_post requires 3 arguments, got {len(args)}")
 		return cls(subreddit=args[0], post_title=args[1], post_text=args[2])
 
+	@staticmethod
+	def time_until_create_post_possible(reddit: Reddit, agent_config: AgentConfig) -> int:
+		current_user = get_current_user(reddit)
+		latest_submission = get_latest_submission(current_user)
+		if not latest_submission:
+			return 0
+		current_utc = int(time.time())
+		min_post_interval_hrs = agent_config.behavior.minimum_time_between_posts_hours
+		return int(max(latest_submission.created_utc + min_post_interval_hrs * 3600 - current_utc, 0))
+
 	def execute(self, env: AgentEnv):
 		try:
-			current_user = get_current_user(env.reddit)
-			latest_submission = get_latest_submission(current_user)
-			current_utc = int(time.time())
-			min_post_interval_hrs = env.agent_config.behavior.minimum_time_between_posts_hours
-			if not latest_submission or current_utc > latest_submission.created_utc + min_post_interval_hrs * 3600:
+			time_until_create_post_possible = self.time_until_create_post_possible(env.reddit, env.agent_config)
+			if time_until_create_post_possible == 0:
 				env.reddit.subreddit(self.subreddit).submit(self.post_title, selftext=self.post_text)
 				return {'result': 'Post created'}
 			else:
-				return {
-				    'error':
-				    f"Not enough time has passed since the last post, which was published {datetime.fromtimestamp(latest_submission.created_utc)}. Minimum time between posts is {min_post_interval_hrs} hours."
-				}
+				return {'error': f"Not enough time has passed since the last post. Time until next post possible: {seconds_to_dhms(time_until_create_post_possible)}"}
 		except Exception as e:
 			logger.exception(f"Error creating post. Exception: {e}")
 			return {'error': 'Could not create post'}
