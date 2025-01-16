@@ -81,18 +81,6 @@ class Agent:
 				logger.debug(f"Queuing new post: {timestamp} {s.id}, {s.title}")
 				self.submission_queue.put(s)
 
-	def generate_dashboard(self):
-		try:
-			unread_messages = len(list_inbox(self.reddit))
-			current_username = get_current_user(self.reddit).name
-			return "\n".join([
-			    f"Unread messages in inbox: {unread_messages}",
-			    f"Your username: {current_username}",
-			])
-		except Exception as e:
-			logger.exception(f"Error generating dashboard: {e}")
-			return "Error generating dashboard"
-
 	def save_state(self):
 		with open(self.state_filename, 'w') as f:
 			f.write(self.state.model_dump_json(indent=2))
@@ -124,7 +112,7 @@ class Agent:
 		    self.agent_config.agent_description,
 		    "",
 		    "To acheive your goals, you can interact with Reddit users by replying to comments, creating posts, and more.",
-		    "You will be provided with the recent command history, a dashboard of the current state (e.g. number of unread messages in inbox), and a list of available commands.",
+		    "You will be provided with the recent command history and a list of available commands.",
 		    "Respond with the command and parameters you want to execute. Also provide a motivation behind the action, and any future steps you plan to take, to help keep track of your strategy.",
 		    "You can work in many steps, and the system will remember your previous actions and responses.",
 		    "Only use comment IDs you have received from earlier actions. Don't use random comment IDs.",
@@ -144,8 +132,7 @@ class Agent:
 
 		while True:
 			dashboard_message = "\n".join([
-			    "Dashboard:",
-			    self.generate_dashboard(),
+			    f"Your username is '{get_current_user(self.reddit).name}'.",
 			    "",
 			    "Available commands:",
 			] + self.get_command_list())
