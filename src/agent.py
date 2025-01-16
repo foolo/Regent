@@ -17,7 +17,7 @@ from src.providers.base_provider import BaseProvider
 from src.pydantic_models.agent_config import AgentConfig
 
 
-def display_json(json_str: str) -> str:
+def json_to_yaml(json_str: str) -> str:
 	try:
 		obj = json.loads(json_str)
 		return yaml.dump(obj, default_flow_style=False)
@@ -104,6 +104,18 @@ class Agent:
 			if time_until_create_post_possible(self.reddit, self.agent_config) <= 0:
 				return
 
+	def format_history(self) -> str:
+		if len(self.state.history) == 0:
+			return "(No history yet)"
+		history_items: list[str] = []
+		for history_item in self.state.history:
+			history_items.append("### Your action:")
+			history_items.append(f"```yaml\n{json_to_yaml(history_item.model_action)}\n```")
+			history_items.append("")
+			history_items.append("### Result:")
+			history_items.append(f"```yaml\n{json_to_yaml(history_item.action_result)}\n```")
+		return "\n".join(history_items)
+
 	def run(self):
 		stream_submissions_thread = threading.Thread(target=self.handle_submissions)
 		stream_submissions_thread.daemon = True
@@ -111,30 +123,31 @@ class Agent:
 
 		system_message = "You are a Reddit AI agent. You use a set of commands to interact with Reddit users. There are commands for replying to comments, creating posts, and more to help you achieve your goals. For each action you take, you also need to provide a motivation behind the action, which can include any future steps you plan to take. This will help you keep track of your strategy and make sure you are working towards your goals. You will be provided with a list of your recent actions, your motivations, and the responses of the actions. You will also be provided with a list of available commands to perform your actions."
 
-		system_prompt = "\n".join([
-		    system_message,
-		    "",
-		    "Agent description:",
-		    self.agent_config.agent_description,
-		])
-
-		self.fmtlog.header(3, "System prompt:")
-		self.fmtlog.code(system_prompt)
-
 		self.fmtlog.header(3, "History:")
 		if len(self.state.history) == 0:
 			self.fmtlog.text("No history yet.")
 		for history_item in self.state.history:
 			self.fmtlog.header(4, f"Action:")
-			self.fmtlog.code(display_json(history_item.model_action))
+			self.fmtlog.code(json_to_yaml(history_item.model_action))
 			self.fmtlog.header(4, "Result:")
-			self.fmtlog.code(display_json(history_item.action_result))
+			self.fmtlog.code(json_to_yaml(history_item.action_result))
 
 		while True:
+			system_prompt = "\n".join([
+			    system_message,
+			    "",
+			    "## Agent description:",
+			    self.agent_config.agent_description,
+			    "",
+			    "## History:",
+			    "",
+			    self.format_history(),
+			])
+
 			user_prompt = "\n".join([
 			    f"Your username is '{get_current_user(self.reddit).name}'.",
 			    "",
-			    "Available commands:",
+			    "## Available commands:",
 			] + self.get_command_list() + [
 			    "",
 			    "Respond with the command and parameters you want to execute. Also provide a motivation behind the action, and any future steps you plan to take, to help keep track of your strategy."
@@ -143,7 +156,7 @@ class Agent:
 			self.fmtlog.header(3, "User prompt:")
 			self.fmtlog.code(user_prompt)
 
-			model_action = self.provider.get_action(system_prompt, self.state.history, user_prompt)
+			model_action = self.provider.get_action(system_prompt, user_prompt)
 			if model_action is None:
 				self.fmtlog.text("Error: Could not get model action.")
 				continue
