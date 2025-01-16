@@ -124,7 +124,7 @@ class Agent:
 		    self.agent_config.agent_description,
 		    "",
 		    "To acheive your goals, you can interact with Reddit users by replying to comments, creating posts, and more.",
-		    "You will be provided with a list of available commands, the recent command history, and a dashboard of the current state (e.g. number of messages in inbox).",
+		    "You will be provided with the recent command history, a dashboard of the current state (e.g. number of unread messages in inbox), and a list of available commands.",
 		    "Respond with the command and parameters you want to execute. Also provide a motivation behind the action, and any future steps you plan to take, to help keep track of your strategy.",
 		    "You can work in many steps, and the system will remember your previous actions and responses.",
 		    "Only use comment IDs you have received from earlier actions. Don't use random comment IDs.",
