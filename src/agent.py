@@ -109,14 +109,13 @@ class Agent:
 		stream_submissions_thread.daemon = True
 		stream_submissions_thread.start()
 
+		system_message = "You are a Reddit AI agent. You use a set of commands to interact with Reddit users. There are commands for replying to comments, creating posts, and more to help you achieve your goals. For each action you take, you also need to provide a motivation behind the action, which can include any future steps you plan to take. This will help you keep track of your strategy and make sure you are working towards your goals. You will be provided with a list of your recent actions, your motivations, and the responses of the actions. You will also be provided with a list of available commands to perform your actions."
+
 		system_prompt = "\n".join([
-		    self.agent_config.agent_description,
+		    system_message,
 		    "",
-		    "To acheive your goals, you can interact with Reddit users by replying to comments, creating posts, and more.",
-		    "You will be provided with the recent command history and a list of available commands.",
-		    "Respond with the command and parameters you want to execute. Also provide a motivation behind the action, and any future steps you plan to take, to help keep track of your strategy.",
-		    "You can work in many steps, and the system will remember your previous actions and responses.",
-		    "Only use comment IDs you have received from earlier actions. Don't use random comment IDs.",
+		    "Agent description:",
+		    self.agent_config.agent_description,
 		])
 
 		self.fmtlog.header(3, "System prompt:")
@@ -132,16 +131,19 @@ class Agent:
 			self.fmtlog.code(display_json(history_item.action_result))
 
 		while True:
-			dashboard_message = "\n".join([
+			user_prompt = "\n".join([
 			    f"Your username is '{get_current_user(self.reddit).name}'.",
 			    "",
 			    "Available commands:",
-			] + self.get_command_list())
+			] + self.get_command_list() + [
+			    "",
+			    "Respond with the command and parameters you want to execute. Also provide a motivation behind the action, and any future steps you plan to take, to help keep track of your strategy."
+			])
 
-			self.fmtlog.header(3, "Dashboard message:")
-			self.fmtlog.code(dashboard_message)
+			self.fmtlog.header(3, "User prompt:")
+			self.fmtlog.code(user_prompt)
 
-			model_action = self.provider.get_action(system_prompt, self.state.history, dashboard_message)
+			model_action = self.provider.get_action(system_prompt, self.state.history, user_prompt)
 			if model_action is None:
 				self.fmtlog.text("Error: Could not get model action.")
 				continue

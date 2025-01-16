@@ -118,7 +118,7 @@ class ShowConversationWithNewActivity(Command):
 
 
 @Command.register("reply_to_content", ['CONTENT_ID', 'REPLY_TEXT'],
-                  "Reply to a post or comment with the given ID. You can get the comment IDs from the inbox, and post IDs from the 'show_new_post' command")
+                  "Reply to a post or comment with the given ID. You can get comment IDs from the inbox, and post IDs from the 'show_new_post' command")
 @dataclass
 class ReplyToContent(Command):
 	content_id: str
