@@ -1,5 +1,4 @@
 import os
-from typing import Any
 import yaml
 from praw import Reddit  # type: ignore
 from praw.models import Comment, Submission, Redditor  # type: ignore
@@ -68,22 +67,23 @@ def pop_comment_from_inbox(reddit: Reddit, test_mode: bool) -> Comment | None:
 	return None
 
 
-def show_conversation(reddit: Reddit, comment_id: str) -> dict[str, Any]:
+def show_conversation(reddit: Reddit, comment_id: str) -> list[dict[str, str]]:
 	comment = reddit.comment(comment_id)
 	root_submission, comments = get_comment_chain(comment, reddit)
-	conversation_struct: dict[str, Any] = {}
-	conversation_struct['root_post'] = {
+	items: list[dict[str, str]] = []
+	items.append({
 	    'author': get_author_name(root_submission),
 	    'title': root_submission.title,
 	    'text': root_submission.selftext,
-	}
-	conversation_struct['comments'] = [{
-	    'author': get_author_name(comment),
-	    'text': comment.body,
-	    'content_id': COMMENT_PREFIX + comment.id,
-	} for comment in comments]
-
-	return conversation_struct
+	    'content_id': SUBMISSION_PREFIX + root_submission.id,
+	})
+	for c in comments:
+		items.append({
+		    'author': get_author_name(c),
+		    'text': c.body,
+		    'content_id': COMMENT_PREFIX + c.id,
+		})
+	return items
 
 
 def list_inbox(reddit: Reddit) -> list[dict[str, str]]:
