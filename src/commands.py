@@ -191,7 +191,7 @@ class CreatePost(Command):
 	def execute(self, env: AgentEnv):
 		try:
 			time_left = time_until_create_post_possible(env.reddit, env.agent_config)
-			if time_left == 0:
+			if time_left <= 0:
 				env.reddit.subreddit(self.subreddit).submit(self.post_title, selftext=self.post_text)
 				return {'result': 'Post created'}
 			else:
