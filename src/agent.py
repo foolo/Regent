@@ -10,9 +10,9 @@ from src.log_config import logger
 from praw import Reddit  # type: ignore
 from praw.models import Submission  # type: ignore
 from src.formatted_logger import FormattedLogger
-from src.commands import AgentEnv, Command, time_until_create_post_possible
+from src.commands import AgentEnv, Command, CreatePost, ShowConversationWithNewActivity, ShowNewPost
 from src.pydantic_models.agent_state import AgentState, HistoryItem, StreamedSubmission
-from src.reddit_utils import get_current_user, list_inbox_comments
+from src.reddit_utils import get_current_user
 from src.providers.base_provider import BaseProvider
 from src.pydantic_models.agent_config import AgentConfig
 
@@ -103,11 +103,11 @@ class Agent:
 		while True:
 			time.sleep(self.iteration_interval)
 			self.stream_submissions_to_state()
-			if len(self.state.streamed_submissions) > 0:
+			if ShowNewPost.available(AgentEnv(self.reddit, self.state, self.agent_config, self.test_mode)):
 				return
-			if len(list_inbox_comments(self.reddit)) > 0:
+			if ShowConversationWithNewActivity.available(AgentEnv(self.reddit, self.state, self.agent_config, self.test_mode)):
 				return
-			if time_until_create_post_possible(self.reddit, self.agent_config) <= 0:
+			if CreatePost.available(AgentEnv(self.reddit, self.state, self.agent_config, self.test_mode)):
 				return
 
 	def format_history(self) -> str:
