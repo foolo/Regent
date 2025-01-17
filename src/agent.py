@@ -8,7 +8,7 @@ import time
 import yaml
 from src.log_config import logger
 from praw import Reddit  # type: ignore
-from praw.models import Comment, Submission  # type: ignore
+from praw.models import Submission  # type: ignore
 from src.formatted_logger import FormattedLogger
 from src.commands import AgentEnv, Command, time_until_create_post_possible
 from src.pydantic_models.agent_state import AgentState, HistoryItem, StreamedSubmission
