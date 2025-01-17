@@ -131,6 +131,8 @@ class ReplyToContent(Command):
 		return cls(content_id=args[0], reply_text=args[1])
 
 	def execute(self, env: AgentEnv):
+		if env.test_mode:
+			return {'warning': 'Test mode enabled. Reply not posted'}
 		if self.content_id.startswith(SUBMISSION_PREFIX):
 			try:
 				submission_id = self.content_id[len(SUBMISSION_PREFIX):]
@@ -189,6 +191,8 @@ class CreatePost(Command):
 		return cls(subreddit=args[0], post_title=args[1], post_text=args[2])
 
 	def execute(self, env: AgentEnv):
+		if env.test_mode:
+			return {'warning': 'Test mode enabled. Post not created'}
 		try:
 			time_left = time_until_create_post_possible(env.reddit, env.agent_config)
 			if time_left <= 0:
@@ -204,4 +208,6 @@ class CreatePost(Command):
 
 	@classmethod
 	def available(cls, env: AgentEnv) -> bool:
+		if env.test_mode:
+			return True
 		return time_until_create_post_possible(env.reddit, env.agent_config) <= 0
