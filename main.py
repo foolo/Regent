@@ -41,7 +41,8 @@ def run():
 	parser = argparse.ArgumentParser()
 	parser.add_argument("agent_schema", type=argparse.FileType('r'))
 	parser.add_argument("provider", type=str)
-	parser.add_argument("--test_mode", action="store_true", help="Run the agent in test mode. Enables confirmation before each action. Inbox comments are not marked as read.")
+	parser.add_argument("--confirm", action="store_true", help="Enables confirmation before each action.")
+	parser.add_argument("--test_mode", action="store_true", help="Run the agent in test mode. Inbox comments are not marked as read.")
 	parser.add_argument("--iteration_interval", type=int, default=60, help="The interval in seconds between agent iterations.")
 	parser.add_argument("--log_level", type=str, default="INFO", help="Set the log level. Default: INFO")
 	args = parser.parse_args()
@@ -72,10 +73,11 @@ def run():
 	agent_config = AgentConfig(**agent_schema_obj)
 	logger.info(f'Loaded agent: {agent_config.name}')
 
+	confirm: bool = args.confirm
 	test_mode: bool = args.test_mode
 	iteration_interval: int = args.iteration_interval
 	agent_state_filename = 'agent_state.json'
-	agent = Agent(agent_state_filename, agent_config, provider, reddit, test_mode, iteration_interval)
+	agent = Agent(agent_state_filename, agent_config, provider, reddit, confirm, test_mode, iteration_interval)
 	agent.run()
 
 

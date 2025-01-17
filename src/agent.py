@@ -26,7 +26,7 @@ def json_to_yaml(json_str: str) -> str:
 
 
 class Agent:
-	def __init__(self, state_filename: str, agent_config: AgentConfig, provider: BaseProvider, reddit: Reddit, test_mode: bool, iteration_interval: int):
+	def __init__(self, state_filename: str, agent_config: AgentConfig, provider: BaseProvider, reddit: Reddit, confirm: bool, test_mode: bool, iteration_interval: int):
 		if os.path.exists(state_filename):
 			with open(state_filename) as f:
 				whole_file_as_string = f.read()
@@ -38,6 +38,7 @@ class Agent:
 		self.agent_config = agent_config
 		self.provider = provider
 		self.reddit = reddit
+		self.confirm = confirm
 		self.test_mode = test_mode
 		self.iteration_interval = iteration_interval
 		self.submission_queue: queue.Queue[Submission] = queue.Queue()
@@ -174,7 +175,7 @@ class Agent:
 			self.fmtlog.header(3, f"Model action: {model_action.command}")
 			self.fmtlog.code(yaml.dump(model_action.model_dump(), default_flow_style=False))
 
-			if self.test_mode:
+			if self.confirm:
 				print("Press enter to continue...", file=sys.stderr)
 				input("")
 
@@ -193,7 +194,7 @@ class Agent:
 
 			self.save_state()
 
-			if self.test_mode:
+			if self.confirm:
 				print("Press enter to continue...", file=sys.stderr)
 				input("")
 			else:
