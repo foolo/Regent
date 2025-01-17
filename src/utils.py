@@ -1,3 +1,5 @@
+import json
+import yaml
 import unittest
 
 
@@ -38,6 +40,14 @@ class TestSecondsToDHMS(unittest.TestCase):
 		self.assertEqual(seconds_to_dhms(86461), "24h")
 		self.assertEqual(seconds_to_dhms(89999), "24h")
 		self.assertEqual(seconds_to_dhms(90000), "25h")
+
+
+def json_to_yaml(json_str: str) -> str:
+	try:
+		obj = json.loads(json_str)
+		return yaml.dump(obj, default_flow_style=False)
+	except json.JSONDecodeError:
+		return json_str
 
 
 if __name__ == '__main__':

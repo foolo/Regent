@@ -15,14 +15,7 @@ from src.pydantic_models.agent_state import AgentState, HistoryItem, StreamedSub
 from src.reddit_utils import get_current_user
 from src.providers.base_provider import BaseProvider
 from src.pydantic_models.agent_config import AgentConfig
-
-
-def json_to_yaml(json_str: str) -> str:
-	try:
-		obj = json.loads(json_str)
-		return yaml.dump(obj, default_flow_style=False)
-	except json.JSONDecodeError:
-		return json_str
+from src.utils import json_to_yaml
 
 
 class Agent:
