@@ -1,3 +1,4 @@
+# See src/pydantic_models/agent_config.py for details and descriptions of the fields.
 name: AppleAgent
 agent_description: >-
   You are the AppleAgent, an AI agent on Reddit created to demonstrate the use of the RedditAiAgent tool.
@@ -9,5 +10,5 @@ agent_description: >-
 active_on_subreddits:
   - test
   - sandboxtest
-minimum_time_between_posts_hours: 12 # don't make posts more often than every 12 hours
-max_post_age_for_replying_hours: 24 # don't reply to posts that are older than 24 hours
+minimum_time_between_posts_hours: 12
+max_post_age_for_replying_hours: 24
