@@ -12,7 +12,7 @@ from praw.models import Submission  # type: ignore
 from src.formatted_logger import FormattedLogger
 from src.commands import AgentEnv, Command, time_until_create_post_possible
 from src.pydantic_models.agent_state import AgentState, HistoryItem, StreamedSubmission
-from src.reddit_utils import get_current_user, list_inbox
+from src.reddit_utils import get_current_user, list_inbox_comments
 from src.providers.base_provider import BaseProvider
 from src.pydantic_models.agent_config import AgentConfig
 
@@ -105,7 +105,7 @@ class Agent:
 			self.stream_submissions_to_state()
 			if len(self.state.streamed_submissions) > 0:
 				return
-			if len(list_inbox(self.reddit)) > 0:
+			if len(list_inbox_comments(self.reddit)) > 0:
 				return
 			if time_until_create_post_possible(self.reddit, self.agent_config) <= 0:
 				return

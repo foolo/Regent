@@ -56,14 +56,18 @@ def get_current_user(reddit: Reddit) -> Redditor:
 	return current_user
 
 
+def list_inbox_comments(reddit: Reddit) -> list[Comment]:
+	items = reddit.inbox.unread(limit=None)  # type: ignore
+	return [i for i in items if isinstance(i, Comment)]
+
+
 def pop_comment_from_inbox(reddit: Reddit, test_mode: bool) -> Comment | None:
-	for item in reddit.inbox.unread(limit=None):  # type: ignore
-		if isinstance(item, Comment):
-			if test_mode:
-				logger.info(f"Test mode. Not marking comment {item.id} as read")
-			else:
-				item.mark_read()
-			return item
+	for comment in list_inbox_comments(reddit):
+		if test_mode:
+			logger.info(f"Test mode. Not marking comment {comment.id} as read")
+		else:
+			comment.mark_read()
+		return comment
 	return None
 
 
@@ -84,16 +88,3 @@ def show_conversation(reddit: Reddit, comment_id: str) -> list[dict[str, str]]:
 		    'content_id': COMMENT_PREFIX + c.id,
 		})
 	return items
-
-
-def list_inbox(reddit: Reddit) -> list[dict[str, str]]:
-	inbox: list[dict[str, str]] = []
-	for item in reddit.inbox.unread(limit=None):  # type: ignore
-		if isinstance(item, Comment):
-			inbox.append({
-			    'type': 'comment',
-			    'content_id': COMMENT_PREFIX + item.id,
-			    'author': get_author_name(item),
-			    'body': item.body,
-			})
-	return inbox

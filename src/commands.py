@@ -8,7 +8,7 @@ from abc import abstractmethod
 from src.providers.base_provider import Action
 from src.pydantic_models.agent_config import AgentConfig
 from src.pydantic_models.agent_state import AgentState
-from src.reddit_utils import COMMENT_PREFIX, SUBMISSION_PREFIX, get_author_name, get_current_user, get_latest_submission, list_inbox, pop_comment_from_inbox, show_conversation
+from src.reddit_utils import COMMENT_PREFIX, SUBMISSION_PREFIX, get_author_name, get_current_user, get_latest_submission, list_inbox_comments, pop_comment_from_inbox, show_conversation
 from src.utils import seconds_to_dhms
 
 
@@ -114,7 +114,7 @@ class ShowConversationWithNewActivity(Command):
 
 	@classmethod
 	def available(cls, env: AgentEnv) -> bool:
-		return len(list_inbox(env.reddit)) > 0
+		return len(list_inbox_comments(env.reddit)) > 0
 
 
 @Command.register("reply_to_content", ['CONTENT_ID', 'REPLY_TEXT'],
