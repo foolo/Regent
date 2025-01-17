@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import socket
 import sys
 import time
@@ -28,16 +26,13 @@ def retrieve_refresh_token() -> int:
 	print(f"To connect your Reddit account to this application, open the following URL in your browser:")
 	print(url)
 
-	client = receive_connection(redirect_host, redirect_port)
+	client = wait_for_connection(redirect_host, redirect_port)
 	data = client.recv(1024).decode("utf-8")
 	param_tokens = data.split(" ", 2)[1].split("?", 1)[1].split("&")
 	params = {key: value for (key, value) in [token.split("=") for token in param_tokens]}
 
 	if state != params["state"]:
-		send_message(
-		    client,
-		    f"State mismatch. Expected: {state} Received: {params['state']}",
-		)
+		send_message(client, f"State mismatch. Expected: {state} Received: {params['state']}")
 		return 1
 	elif "error" in params:
 		send_message(client, params["error"])
@@ -49,12 +44,7 @@ def retrieve_refresh_token() -> int:
 	return 0
 
 
-def receive_connection(redirect_host: str, redirect_port: int) -> socket.socket:
-	"""Wait for and then return a connected socket..
-
-    Opens a TCP connection, and waits for a single client.
-
-    """
+def wait_for_connection(redirect_host: str, redirect_port: int) -> socket.socket:
 	server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 	server.bind((redirect_host, redirect_port))
@@ -64,8 +54,8 @@ def receive_connection(redirect_host: str, redirect_port: int) -> socket.socket:
 	return client
 
 
+# Send message to client and close the connection
 def send_message(client: socket.socket, message: str):
-	"""Send message to client and close the connection."""
 	print(message)
 	client.send(f"HTTP/1.1 200 OK\r\n\r\n{message}".encode("utf-8"))
 	client.close()
