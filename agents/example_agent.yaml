@@ -12,3 +12,4 @@ active_on_subreddits:
   - sandboxtest
 minimum_time_between_posts_hours: 12
 max_post_age_for_replying_hours: 24
+max_history_length: 20

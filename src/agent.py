@@ -120,13 +120,18 @@ class Agent:
 			history_items.append(f"```yaml\n{json_to_yaml(history_item.action_result)}\n```")
 		return "\n".join(history_items)
 
+	def append_to_history(self, history_item: HistoryItem):
+		self.state.history.append(history_item)
+		if len(self.state.history) > self.agent_config.max_history_length:
+			self.state.history = self.state.history[-self.agent_config.max_history_length:]
+
 	def run(self):
 		stream_submissions_thread = threading.Thread(target=self.handle_submissions)
 		stream_submissions_thread.daemon = True
 		stream_submissions_thread.start()
 		self.stream_submissions_to_state(wait_once=True)
 
-		system_message = "You are a Reddit AI agent. You use a set of commands to interact with Reddit users. There are commands for replying to comments, creating posts, and more to help you achieve your goals. For each action you take, you also need to provide a motivation behind the action, which can include any future steps you plan to take. This will help you keep track of your strategy and make sure you are working towards your goals. You will be provided with a list of your recent actions, your motivations, and the responses of the actions. You will also be provided with a list of available commands to perform your actions."
+		system_message = f"You are a Reddit AI agent. You use a set of commands to interact with Reddit users. There are commands for replying to comments, creating posts, and more to help you achieve your goals. For each action you take, you also need to provide a motivation behind the action, which can include any future steps you plan to take. This will help you keep track of your strategy and make sure you are working towards your goals. You will be provided with a history of your recent actions (up to {self.agent_config.max_history_length} actions), your motivations, and the responses of the actions. You will also be provided with a list of available commands to perform your actions."
 
 		self.fmtlog.header(3, "History:")
 		if len(self.state.history) == 0:
@@ -180,7 +185,7 @@ class Agent:
 			self.fmtlog.header(3, "Action result:")
 			self.fmtlog.code(yaml.dump(action_result, default_flow_style=False))
 
-			self.state.history.append(
+			self.append_to_history(
 			    HistoryItem(
 			        model_action=json.dumps(model_action.model_dump(), ensure_ascii=False),
 			        action_result=json.dumps(action_result, ensure_ascii=False),
