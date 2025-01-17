@@ -171,7 +171,7 @@ def time_until_create_post_possible(reddit: Reddit, agent_config: AgentConfig) -
 	if not latest_submission:
 		return 0
 	current_utc = int(time.time())
-	min_post_interval_hrs = agent_config.behavior.minimum_time_between_posts_hours
+	min_post_interval_hrs = agent_config.minimum_time_between_posts_hours
 	return int(max(latest_submission.created_utc + min_post_interval_hrs * 3600 - current_utc, 0))
 
 

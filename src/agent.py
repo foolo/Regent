@@ -60,10 +60,10 @@ class Agent:
 				break
 			submissions_newer_than_max_age: list[StreamedSubmission] = []
 			for s in self.state.streamed_submissions:
-				if s.timestamp > datetime.now(timezone.utc) - timedelta(hours=self.agent_config.behavior.max_post_age_for_replying_hours):
+				if s.timestamp > datetime.now(timezone.utc) - timedelta(hours=self.agent_config.max_post_age_for_replying_hours):
 					submissions_newer_than_max_age.append(s)
 				else:
-					logger.info(f"Removing post older than {self.agent_config.behavior.max_post_age_for_replying_hours} hours: {s.timestamp}")
+					logger.info(f"Removing post older than {self.agent_config.max_post_age_for_replying_hours} hours: {s.timestamp}")
 			self.state.streamed_submissions = submissions_newer_than_max_age
 		self.save_state()
 
@@ -78,7 +78,7 @@ class Agent:
 				logger.debug(f"Skipping post without text: {s.id}, {s.title}")
 				continue
 			timestamp = datetime.fromtimestamp(s.created_utc, timezone.utc)
-			max_post_age_for_replying_hours = self.agent_config.behavior.max_post_age_for_replying_hours
+			max_post_age_for_replying_hours = self.agent_config.max_post_age_for_replying_hours
 			if timestamp < datetime.now(timezone.utc) - timedelta(hours=max_post_age_for_replying_hours):
 				logger.debug(f"Skipping post older than {max_post_age_for_replying_hours} hours: {timestamp} {s.id}, {s.title}")
 			else:
