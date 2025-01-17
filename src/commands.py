@@ -114,7 +114,7 @@ class ShowConversationWithNewActivity(Command):
 
 	@classmethod
 	def available(cls, env: AgentEnv) -> bool:
-		return True
+		return len(list_inbox(env.reddit)) > 0
 
 
 @Command.register("reply_to_content", ['CONTENT_ID', 'REPLY_TEXT'],
@@ -127,7 +127,7 @@ class ReplyToContent(Command):
 	@classmethod
 	def instance_decode(cls, args: list[str]) -> 'ReplyToContent':
 		if len(args) != 2:
-			raise ValueError(f"show_username requires 2 arguments, got {len(args)}")
+			raise ValueError(f"reply_to_content requires 2 arguments, got {len(args)}")
 		return cls(content_id=args[0], reply_text=args[1])
 
 	def execute(self, env: AgentEnv):
@@ -162,7 +162,7 @@ class ReplyToContent(Command):
 
 	@classmethod
 	def available(cls, env: AgentEnv) -> bool:
-		return len(list_inbox(env.reddit)) > 0
+		return True
 
 
 def time_until_create_post_possible(reddit: Reddit, agent_config: AgentConfig) -> int:
