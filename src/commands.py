@@ -1,23 +1,15 @@
 from dataclasses import dataclass
 import time
 from typing import Any, Type
+from src.agent_env import AgentEnv
 from src.log_config import logger
 from praw import Reddit  # type: ignore
 from praw.exceptions import ClientException  # type: ignore
 from abc import abstractmethod
 from src.providers.base_provider import Action
 from src.pydantic_models.agent_config import AgentConfig
-from src.pydantic_models.agent_state import AgentState
 from src.reddit_utils import COMMENT_PREFIX, SUBMISSION_PREFIX, get_author_name, get_current_user, get_latest_submission, list_inbox_comments, pop_comment_from_inbox, show_conversation
 from src.utils import seconds_to_dhms
-
-
-@dataclass
-class AgentEnv:
-	reddit: Reddit
-	agent_state: AgentState
-	agent_config: AgentConfig
-	test_mode: bool
 
 
 @dataclass
@@ -70,11 +62,11 @@ class ShowNewPost(Command):
 
 	def execute(self, env: AgentEnv) -> dict[str, Any]:
 		try:
-			if len(env.agent_state.streamed_submissions) == 0:
+			if len(env.state.streamed_submissions) == 0:
 				return {'note': 'No new submissions'}
 
-			latest_submission = env.reddit.submission(env.agent_state.streamed_submissions[-1].id)
-			del env.agent_state.streamed_submissions[-1]
+			latest_submission = env.reddit.submission(env.state.streamed_submissions[-1].id)
+			del env.state.streamed_submissions[-1]
 			return {
 			    'post': {
 			        'content_id': SUBMISSION_PREFIX + latest_submission.id,
@@ -89,7 +81,7 @@ class ShowNewPost(Command):
 
 	@classmethod
 	def available(cls, env: AgentEnv) -> bool:
-		return len(env.agent_state.streamed_submissions) > 0
+		return len(env.state.streamed_submissions) > 0
 
 
 @Command.register("show_conversation_with_new_activity", [], "If you have new comments in your inbox, show the whole conversation for the newest one")

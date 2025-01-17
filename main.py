@@ -6,8 +6,9 @@ import sys
 import yaml
 from praw import Reddit  # type: ignore
 
+from src.agent_env import AgentEnv
 from src.log_config import logger
-from src.agent import Agent
+from src.agent import run_agent
 from src.reddit_utils import load_reddit_config
 from src.pydantic_models.agent_config import AgentConfig
 from src.providers.openai_provider import OpenAIProvider
@@ -77,8 +78,8 @@ def run():
 	test_mode: bool = args.test_mode
 	iteration_interval: int = args.iteration_interval
 	agent_state_filename = 'agent_state.json'
-	agent = Agent(agent_state_filename, agent_config, provider, reddit, confirm, test_mode, iteration_interval)
-	agent.run()
+	agent_env = AgentEnv(agent_state_filename, agent_config, provider, reddit, confirm, test_mode, iteration_interval)
+	run_agent(agent_env)
 
 
 if __name__ == '__main__':
