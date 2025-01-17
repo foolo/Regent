@@ -99,6 +99,7 @@ class Agent:
 		return commands
 
 	def wait_until_new_command_available(self):
+		print("Waiting until new command available...", file=sys.stderr)
 		while True:
 			time.sleep(self.iteration_interval)
 			self.stream_submissions_to_state()
