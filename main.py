@@ -1,4 +1,5 @@
 import argparse
+from datetime import datetime
 from enum import Enum
 import logging
 import os
@@ -7,7 +8,7 @@ import yaml
 from praw import Reddit  # type: ignore
 
 from src.agent_env import AgentEnv
-from src.formatted_logger import fmtlog
+from src.formatted_logger import ColoredTerminalLogger, DebugLogger, MarkdownLogger, fmtlog
 from src.log_config import logger
 from src.agent import run_agent
 from src.reddit_utils import LoadConfigException, load_reddit_config
@@ -48,12 +49,18 @@ def run():
 	parser.add_argument("--test_mode", action="store_true", help="Run the agent in test mode. Inbox comments are not marked as read.")
 	parser.add_argument("--iteration_interval", type=int, default=60, help="The interval in seconds between agent iterations.")
 	parser.add_argument("--log_level", type=str, default="INFO", help="Set the log level. Default: INFO")
+	parser.add_argument("--markdown_log_dir", type=str, help="Directory to save markdown logs (default: current working directory)", default=os.getcwd())
 	args = parser.parse_args()
 
 	log_level = logging.getLevelNamesMapping().get(args.log_level)
 	if log_level is None:
 		raise ValueError(f"Invalid log level: {args.log_level}")
 	logger.setLevel(log_level)
+
+	markdown_log_filename = datetime.now().isoformat(sep="_", timespec="seconds") + ".log.md"
+	fmtlog.register_logger(MarkdownLogger(os.path.join(args.markdown_log_dir, markdown_log_filename)))
+	fmtlog.register_logger(DebugLogger())
+	fmtlog.register_logger(ColoredTerminalLogger())
 
 	reddit = initialize_reddit()
 
