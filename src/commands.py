@@ -3,6 +3,7 @@ import time
 from typing import Any, Type
 from src.agent_env import AgentEnv
 from src.log_config import logger
+from src.formatted_logger import fmtlog
 from praw import Reddit  # type: ignore
 from praw.exceptions import ClientException  # type: ignore
 from abc import abstractmethod
@@ -100,7 +101,7 @@ class ShowConversationWithNewActivity(Command):
 				return {'note': 'No new comments in inbox'}
 			comment = comments[0]
 			if env.test_mode:
-				logger.info(f"Test mode. Not marking comment {comment.id} as read")
+				fmtlog.text(f"Test mode. Not marking comment {comment.id} as read")
 			else:
 				comment.mark_read()
 			conversation = show_conversation(env.reddit, comment.id)

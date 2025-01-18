@@ -16,3 +16,6 @@ class FormattedLogger:
 	def header(self, level: int, text: Any):
 		print("")
 		print(Fore.GREEN + f"{'#' * level} {str(text)}" + Style.RESET_ALL)
+
+
+fmtlog = FormattedLogger()

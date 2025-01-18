@@ -7,6 +7,7 @@ import yaml
 from praw import Reddit  # type: ignore
 
 from src.agent_env import AgentEnv
+from src.formatted_logger import fmtlog
 from src.log_config import logger
 from src.agent import run_agent
 from src.reddit_utils import LoadConfigException, load_reddit_config
@@ -27,7 +28,7 @@ def initialize_reddit():
 	    user_agent=config.user_agent,
 	    refresh_token=config.refresh_token,
 	)
-	logger.info(f"Logged in as: {reddit.user.me()}")
+	fmtlog.text(f"Logged in as: {reddit.user.me()}")
 	return reddit
 
 
@@ -60,7 +61,7 @@ def run():
 	if args.provider not in [provider.name for provider in Providers]:
 		raise ValueError(f"Unknown provider: {args.provider}. Available providers: {', '.join([provider.name for provider in Providers])}")
 	provider_enum = Providers[args.provider]
-	logger.info(f'Using provider: {provider_enum.name}')
+	fmtlog.text(f'Using provider: {provider_enum.name}')
 
 	if provider_enum.name == Providers.openai.name:
 		config_obj = load_config('config/openai_config.yaml')
@@ -73,7 +74,7 @@ def run():
 	agent_schema_obj = yaml.safe_load(agent_schema)
 
 	agent_config = AgentConfig(**agent_schema_obj)
-	logger.info(f'Loaded agent: {agent_config.name}')
+	fmtlog.text(f'Loaded agent: {agent_config.name}')
 
 	confirm: bool = args.confirm
 	test_mode: bool = args.test_mode

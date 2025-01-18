@@ -6,15 +6,14 @@ import threading
 import time
 import yaml
 from src.log_config import logger
+from src.formatted_logger import fmtlog
 from praw.models import Submission  # type: ignore
-from src.formatted_logger import FormattedLogger
 from src.commands import AgentEnv, Command, CreatePost, ShowConversationWithNewActivity, ShowNewPost
 from src.pydantic_models.agent_state import HistoryItem, StreamedSubmission
 from src.reddit_utils import get_current_user
 from src.utils import json_to_yaml
 
 submission_queue: queue.Queue[Submission] = queue.Queue()
-fmtlog = FormattedLogger()
 
 
 def stream_submissions_to_state(env: AgentEnv, wait_once: bool = False):
