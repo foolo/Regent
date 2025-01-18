@@ -8,16 +8,22 @@ from src.log_config import logger
 REDDIT_CONFIG_FILENAME = 'config/reddit_config.yaml'
 
 
+class LoadConfigException(Exception):
+	pass
+
+
 def load_reddit_config():
 	if os.path.exists(REDDIT_CONFIG_FILENAME):
 		with open(REDDIT_CONFIG_FILENAME) as f:
 			config_obj = yaml.safe_load(f)
 	else:
-		raise FileNotFoundError(
+		raise LoadConfigException(
 		    f"File {REDDIT_CONFIG_FILENAME} not found. Create it by copying {REDDIT_CONFIG_FILENAME}.example to {REDDIT_CONFIG_FILENAME} and filling in the values.")
 	config = RedditConfig(**config_obj)
 	if not config.user_agent or config.user_agent == "":
 		config.user_agent = f"RedditAiAgent"
+	if not config.refresh_token or config.refresh_token == "":
+		raise LoadConfigException(f"No Reddit refresh token found in {REDDIT_CONFIG_FILENAME}. Run 'python reddit_auth.py' to generate one.")
 	return config
 
 

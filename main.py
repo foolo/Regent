@@ -9,17 +9,18 @@ from praw import Reddit  # type: ignore
 from src.agent_env import AgentEnv
 from src.log_config import logger
 from src.agent import run_agent
-from src.reddit_utils import load_reddit_config
+from src.reddit_utils import LoadConfigException, load_reddit_config
 from src.pydantic_models.agent_config import AgentConfig
 from src.providers.openai_provider import OpenAIProvider
 from src.pydantic_models.openai_config import OpenAIConfig
 
 
 def initialize_reddit():
-	config = load_reddit_config()
-	if not config.refresh_token or config.refresh_token == "":
-		logger.warning("No Reddit refresh token found. Run 'python reddit_auth.py' to generate one.")
-		sys.exit(0)
+	try:
+		config = load_reddit_config()
+	except LoadConfigException as e:
+		logger.error(e)
+		sys.exit(1)
 	reddit = Reddit(
 	    client_id=config.client_id,
 	    client_secret=config.client_secret,
