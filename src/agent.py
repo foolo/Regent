@@ -153,7 +153,7 @@ def run_agent(env: AgentEnv):
 			continue
 
 		fmtlog.header(3, f"Model action: {model_action.command}")
-		fmtlog.code(yaml.dump(model_action.model_dump(), default_flow_style=False))
+		fmtlog.code(yaml.dump(model_action.model_dump(), default_flow_style=False, allow_unicode=True))
 
 		if env.confirm:
 			print("Press enter to continue...", file=sys.stderr)
@@ -164,7 +164,7 @@ def run_agent(env: AgentEnv):
 		command = Command.decode(model_action)
 		action_result = command.execute(env)
 		fmtlog.header(3, "Action result:")
-		fmtlog.code(yaml.dump(action_result, default_flow_style=False))
+		fmtlog.code(yaml.dump(action_result, default_flow_style=False, allow_unicode=True))
 
 		append_to_history(env, HistoryItem(
 		    model_action=json.dumps(model_action.model_dump(), ensure_ascii=False),

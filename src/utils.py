@@ -45,7 +45,7 @@ class TestSecondsToDHMS(unittest.TestCase):
 def json_to_yaml(json_str: str) -> str:
 	try:
 		obj = json.loads(json_str)
-		return yaml.dump(obj, default_flow_style=False)
+		return yaml.dump(obj, default_flow_style=False, allow_unicode=True)
 	except json.JSONDecodeError:
 		return json_str
 
