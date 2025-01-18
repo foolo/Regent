@@ -3,7 +3,6 @@ import yaml
 from praw import Reddit  # type: ignore
 from praw.models import Comment, Submission, Redditor  # type: ignore
 from src.pydantic_models.reddit_config import RedditConfig
-from src.log_config import logger
 
 REDDIT_CONFIG_FILENAME = 'config/reddit_config.yaml'
 
@@ -65,16 +64,6 @@ def get_current_user(reddit: Reddit) -> Redditor:
 def list_inbox_comments(reddit: Reddit) -> list[Comment]:
 	items = reddit.inbox.unread(limit=None)  # type: ignore
 	return [i for i in items if isinstance(i, Comment)]
-
-
-def pop_comment_from_inbox(reddit: Reddit, test_mode: bool) -> Comment | None:
-	for comment in list_inbox_comments(reddit):
-		if test_mode:
-			logger.info(f"Test mode. Not marking comment {comment.id} as read")
-		else:
-			comment.mark_read()
-		return comment
-	return None
 
 
 def show_conversation(reddit: Reddit, comment_id: str) -> list[dict[str, str]]:

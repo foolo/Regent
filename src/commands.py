@@ -8,7 +8,7 @@ from praw.exceptions import ClientException  # type: ignore
 from abc import abstractmethod
 from src.providers.base_provider import Action
 from src.pydantic_models.agent_config import AgentConfig
-from src.reddit_utils import COMMENT_PREFIX, SUBMISSION_PREFIX, get_author_name, get_current_user, get_latest_submission, list_inbox_comments, pop_comment_from_inbox, show_conversation
+from src.reddit_utils import COMMENT_PREFIX, SUBMISSION_PREFIX, get_author_name, get_current_user, get_latest_submission, list_inbox_comments, show_conversation
 from src.utils import seconds_to_dhms
 
 
@@ -95,9 +95,14 @@ class ShowConversationWithNewActivity(Command):
 
 	def execute(self, env: AgentEnv) -> dict[str, Any]:
 		try:
-			comment = pop_comment_from_inbox(env.reddit, env.test_mode)
-			if not comment:
+			comments = list_inbox_comments(env.reddit)
+			if len(comments) == 0:
 				return {'note': 'No new comments in inbox'}
+			comment = comments[0]
+			if env.test_mode:
+				logger.info(f"Test mode. Not marking comment {comment.id} as read")
+			else:
+				comment.mark_read()
 			conversation = show_conversation(env.reddit, comment.id)
 		except Exception as e:
 			logger.exception(f"Error showing conversation. Exception: {e}")
