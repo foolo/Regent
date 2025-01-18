@@ -109,6 +109,11 @@ def run_agent(env: AgentEnv):
 
 	system_message = f"You are a Reddit AI agent. You use a set of commands to interact with Reddit users. There are commands for replying to comments, creating posts, and more to help you achieve your goals. For each action you take, you also need to provide a motivation behind the action, which can include any future steps you plan to take. This will help you keep track of your strategy and make sure you are working towards your goals. You will be provided with a history of your recent actions (up to {env.agent_config.max_history_length} actions), your motivations, and the responses of the actions. You will also be provided with a list of available commands to perform your actions."
 
+	fmtlog.header(3, "System message:")
+	fmtlog.text(system_message)
+	fmtlog.header(3, "Agent description:")
+	fmtlog.text(env.agent_config.agent_description)
+
 	fmtlog.header(3, "History:")
 	if len(env.state.history) == 0:
 		fmtlog.text("No history yet.")
