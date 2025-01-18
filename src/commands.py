@@ -70,6 +70,7 @@ class ShowNewPost(Command):
 			del env.state.streamed_submissions[-1]
 			return {
 			    'post': {
+			        'subreddit': latest_submission.subreddit.display_name,
 			        'content_id': SUBMISSION_PREFIX + latest_submission.id,
 			        'author': get_author_name(latest_submission),
 			        'title': latest_submission.title,
