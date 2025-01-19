@@ -9,7 +9,7 @@ from praw.exceptions import ClientException  # type: ignore
 from abc import abstractmethod
 from src.providers.base_provider import Action
 from src.pydantic_models.agent_config import AgentConfig
-from src.reddit_utils import COMMENT_PREFIX, SUBMISSION_PREFIX, get_author_name, get_current_user, get_latest_submission, list_inbox_comments, show_conversation
+from src.reddit_utils import COMMENT_PREFIX, SUBMISSION_PREFIX, get_comment_tree, get_current_user, get_latest_submission, list_inbox_comments, show_conversation
 from src.utils import seconds_to_dhms
 
 
@@ -68,15 +68,7 @@ class ShowNewPost(Command):
 
 			latest_submission = env.reddit.submission(env.state.streamed_submissions[-1].id)
 			del env.state.streamed_submissions[-1]
-			return {
-			    'post': {
-			        'subreddit': latest_submission.subreddit.display_name,
-			        'content_id': SUBMISSION_PREFIX + latest_submission.id,
-			        'author': get_author_name(latest_submission),
-			        'title': latest_submission.title,
-			        'text': latest_submission.selftext,
-			    }
-			}
+			return get_comment_tree(env.reddit, latest_submission, 10)
 		except Exception as e:
 			logger.exception(f"Error fetching new post. Exception: {e}")
 			return {'error': 'Could not fetch new post'}
