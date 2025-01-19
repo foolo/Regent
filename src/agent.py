@@ -4,14 +4,13 @@ import queue
 import sys
 import threading
 import time
-import yaml
 from src.log_config import logger
 from src.formatted_logger import fmtlog
 from praw.models import Submission  # type: ignore
 from src.commands import AgentEnv, Command, CreatePost, ShowConversationWithNewActivity, ShowNewPost
 from src.pydantic_models.agent_state import HistoryItem, StreamedSubmission
 from src.reddit_utils import get_current_user
-from src.utils import json_to_yaml
+from src.utils import json_to_yaml, yaml_dump
 
 submission_queue: queue.Queue[Submission] = queue.Queue()
 
@@ -153,7 +152,7 @@ def run_agent(env: AgentEnv):
 			continue
 
 		fmtlog.header(3, f"Model action: {model_action.command}")
-		fmtlog.code(yaml.dump(model_action.model_dump(), default_flow_style=False, allow_unicode=True))
+		fmtlog.code(yaml_dump(model_action.model_dump()))
 
 		if env.confirm:
 			print("Press enter to continue...", file=sys.stderr)
@@ -164,7 +163,7 @@ def run_agent(env: AgentEnv):
 		command = Command.decode(model_action)
 		action_result = command.execute(env)
 		fmtlog.header(3, "Action result:")
-		fmtlog.code(yaml.dump(action_result, default_flow_style=False, allow_unicode=True))
+		fmtlog.code(yaml_dump(action_result))
 
 		append_to_history(env, HistoryItem(
 		    model_action=json.dumps(model_action.model_dump(), ensure_ascii=False),
