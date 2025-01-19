@@ -48,7 +48,7 @@ def handle_submissions(env: AgentEnv):
 		if s.author == get_current_user(env.reddit):
 			logger.debug(f"Skipping own post: {s.id}, {s.title}")
 			continue
-		if s.selftext == "":
+		if not s.is_self:
 			logger.debug(f"Skipping post without text: {s.id}, {s.title}")
 			continue
 		timestamp = datetime.fromtimestamp(s.created_utc, timezone.utc)
