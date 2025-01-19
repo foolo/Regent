@@ -42,9 +42,11 @@ def load_config(path: str):
 
 
 def run():
+	Providers = Enum('KnownProviders', ['openai'])
+	available_providers = [provider.name for provider in Providers]
 	parser = argparse.ArgumentParser()
-	parser.add_argument("agent_schema_file", type=str)
-	parser.add_argument("provider", type=str)
+	parser.add_argument("agent_schema_file", type=str, help="Path to the agent schema file.")
+	parser.add_argument("provider", type=str, help=f"AI provider to use. Available providers: {', '.join(available_providers)}")
 	parser.add_argument("--confirm", action="store_true", help="Enables confirmation before each action.")
 	parser.add_argument("--test_mode", action="store_true", help="Run the agent in test mode. Inbox comments are not marked as read.")
 	parser.add_argument("--iteration_interval", type=int, default=60, help="The interval in seconds between agent iterations.")
@@ -71,9 +73,8 @@ def run():
 
 	reddit = initialize_reddit()
 
-	Providers = Enum('KnownProviders', ['openai'])
 	if args.provider not in [provider.name for provider in Providers]:
-		raise ValueError(f"Unknown provider: {args.provider}. Available providers: {', '.join([provider.name for provider in Providers])}")
+		raise ValueError(f"Unknown provider: {args.provider}. Available providers: {', '.join(available_providers)}")
 	provider_enum = Providers[args.provider]
 	fmtlog.text(f'Using provider: {provider_enum.name}')
 
