@@ -43,7 +43,7 @@ def load_config(path: str):
 
 def run():
 	parser = argparse.ArgumentParser()
-	parser.add_argument("agent_schema", type=argparse.FileType('r'))
+	parser.add_argument("agent_schema_file", type=str)
 	parser.add_argument("provider", type=str)
 	parser.add_argument("--confirm", action="store_true", help="Enables confirmation before each action.")
 	parser.add_argument("--test_mode", action="store_true", help="Run the agent in test mode. Inbox comments are not marked as read.")
@@ -51,6 +51,13 @@ def run():
 	parser.add_argument("--log_level", type=str, default="INFO", help="Set the log level. Default: INFO")
 	parser.add_argument("--markdown_log_dir", type=str, help="Directory to save markdown logs (default: current working directory)", default=os.getcwd())
 	args = parser.parse_args()
+	assert isinstance(args.agent_schema_file, str)
+	assert isinstance(args.provider, str)
+	assert isinstance(args.confirm, bool)
+	assert isinstance(args.test_mode, bool)
+	assert isinstance(args.iteration_interval, int)
+	assert isinstance(args.log_level, str)
+	assert isinstance(args.markdown_log_dir, str)
 
 	log_level = logging.getLevelNamesMapping().get(args.log_level)
 	if log_level is None:
@@ -77,17 +84,14 @@ def run():
 	else:
 		raise ValueError(f"Provider not implemented: {provider_enum.name}")
 
-	agent_schema = args.agent_schema
-	agent_schema_obj = yaml.safe_load(agent_schema)
+	with open(args.agent_schema_file) as f:
+		agent_schema_obj = yaml.safe_load(f)
 
 	agent_config = AgentConfig(**agent_schema_obj)
 	fmtlog.text(f'Loaded agent: {agent_config.name}')
 
-	confirm: bool = args.confirm
-	test_mode: bool = args.test_mode
-	iteration_interval: int = args.iteration_interval
 	agent_state_filename = 'agent_state.json'
-	agent_env = AgentEnv(agent_state_filename, agent_config, provider, reddit, confirm, test_mode, iteration_interval)
+	agent_env = AgentEnv(agent_state_filename, agent_config, provider, reddit, args.confirm, args.test_mode, args.iteration_interval)
 	run_agent(agent_env)
 
 
