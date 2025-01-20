@@ -9,7 +9,7 @@ from src.formatted_logger import fmtlog
 from praw.models import Submission  # type: ignore
 from src.commands import AgentEnv, Command, CreatePost, ShowConversationWithNewActivity, ShowNewPost
 from src.pydantic_models.agent_state import HistoryItem, StreamedSubmission
-from src.reddit_utils import get_current_user
+from src.reddit_utils import get_current_user, list_inbox_comments
 from src.utils import json_to_yaml, yaml_dump
 
 submission_queue: queue.Queue[Submission] = queue.Queue()
@@ -135,6 +135,9 @@ def run_agent(env: AgentEnv):
 		])
 
 		user_prompt = "\n".join([
+		    "Current status:",
+		    f"Number of messages in inbox: {len(list_inbox_comments(env.reddit))}",
+		    f"Number of unread posts: {len(env.state.streamed_submissions)}",
 		    f"Your username is '{get_current_user(env.reddit).name}'.",
 		    "",
 		    "## Available commands:",
