@@ -9,7 +9,7 @@ from praw.models import Submission  # type: ignore
 from src.commands import AgentEnv, Command, CreatePost, ShowConversationWithNewActivity, ShowNewPost
 from src.pydantic_models.agent_state import HistoryItem, StreamedSubmission
 from src.reddit_utils import get_current_user, list_inbox_comments
-from src.utils import json_to_yaml, yaml_dump
+from src.utils import confirm_yes_no, json_to_yaml, yaml_dump
 
 submission_queue: queue.Queue[Submission] = queue.Queue()
 
@@ -156,13 +156,14 @@ def run_agent(env: AgentEnv):
 		fmtlog.header(3, f"Model action: {model_action.command}")
 		fmtlog.code(yaml_dump(model_action.model_dump()))
 
-		if env.confirm:
-			input("Press enter to continue...")
+		do_execute = not env.test_mode or confirm_yes_no("Execute the action?")
 
 		stream_submissions_to_state(env)
-
-		command = Command.decode(model_action)
-		action_result = command.execute(env)
+		if do_execute:
+			command = Command.decode(model_action)
+			action_result = command.execute(env)
+		else:
+			action_result = {"note": "Skipped execution"}
 		fmtlog.header(3, "Action result:")
 		fmtlog.code(yaml_dump(action_result))
 
@@ -173,7 +174,7 @@ def run_agent(env: AgentEnv):
 
 		env.save_state()
 
-		if env.confirm:
+		if env.test_mode:
 			input("Press enter to continue...")
 		else:
 			wait_until_new_command_available(env)

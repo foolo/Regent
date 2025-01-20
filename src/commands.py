@@ -3,14 +3,13 @@ import time
 from typing import Any, Type
 from src.agent_env import AgentEnv
 from src.log_config import logger
-from src.formatted_logger import fmtlog
 from praw import Reddit  # type: ignore
 from praw.exceptions import ClientException  # type: ignore
 from abc import abstractmethod
 from src.providers.base_provider import Action
 from src.pydantic_models.agent_config import AgentConfig
 from src.reddit_utils import COMMENT_PREFIX, SUBMISSION_PREFIX, get_comment_tree, get_current_user, get_latest_submission, list_inbox_comments, show_conversation
-from src.utils import seconds_to_hms
+from src.utils import confirm_yes_no, seconds_to_hms
 
 
 @dataclass
@@ -93,9 +92,8 @@ class ShowConversationWithNewActivity(Command):
 			if len(comments) == 0:
 				return {'note': 'No new comments in inbox'}
 			comment = comments[0]
-			if env.test_mode:
-				fmtlog.text(f"Test mode. Not marking comment {comment.id} as read")
-			else:
+			mark_as_read = not env.test_mode or confirm_yes_no("Mark comment as read?")
+			if mark_as_read:
 				comment.mark_read()
 			conversation = show_conversation(env.reddit, comment.id)
 		except Exception as e:
@@ -122,8 +120,6 @@ class ReplyToContent(Command):
 		return cls(content_id=args[0], reply_text=args[1])
 
 	def execute(self, env: AgentEnv):
-		if env.test_mode:
-			return {'warning': 'Test mode enabled. Reply not posted'}
 		if self.content_id.startswith(SUBMISSION_PREFIX):
 			try:
 				submission_id = self.content_id[len(SUBMISSION_PREFIX):]
@@ -182,8 +178,6 @@ class CreatePost(Command):
 		return cls(subreddit=args[0], post_title=args[1], post_text=args[2])
 
 	def execute(self, env: AgentEnv):
-		if env.test_mode:
-			return {'warning': 'Test mode enabled. Post not created'}
 		try:
 			time_left = time_until_create_post_possible(env.reddit, env.agent_config)
 			if time_left <= 0:

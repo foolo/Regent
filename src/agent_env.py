@@ -13,7 +13,6 @@ class AgentEnv:
 	agent_config: AgentConfig
 	provider: BaseProvider
 	reddit: Reddit
-	confirm: bool
 	test_mode: bool
 	iteration_interval: int
 	state: AgentState = field(init=False)

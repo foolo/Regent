@@ -56,5 +56,16 @@ def json_to_yaml(json_str: str) -> str:
 		return json_str
 
 
+def confirm_yes_no(prompt: str) -> bool:
+	while True:
+		response = input(f"{prompt} (y/n) ").strip().lower()
+		if response == 'y':
+			return True
+		elif response == 'n':
+			return False
+		else:
+			print("Please enter 'y' or 'n'.")
+
+
 if __name__ == '__main__':
 	unittest.main()
