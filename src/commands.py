@@ -10,7 +10,7 @@ from abc import abstractmethod
 from src.providers.base_provider import Action
 from src.pydantic_models.agent_config import AgentConfig
 from src.reddit_utils import COMMENT_PREFIX, SUBMISSION_PREFIX, get_comment_tree, get_current_user, get_latest_submission, list_inbox_comments, show_conversation
-from src.utils import seconds_to_dhms
+from src.utils import seconds_to_hms
 
 
 @dataclass
@@ -192,7 +192,7 @@ class CreatePost(Command):
 				env.reddit.subreddit(self.subreddit).submit(self.post_title, selftext=self.post_text)
 				return {'result': 'Post created'}
 			else:
-				return {'error': f"Not enough time has passed since the last post. Time until next post possible: {seconds_to_dhms(time_left)}"}
+				return {'error': f"Not enough time has passed since the last post. Time until next post possible: {seconds_to_hms(time_left)}"}
 		except Exception as e:
 			logger.exception(f"Error creating post. Exception: {e}")
 			return {'error': 'Could not create post'}
