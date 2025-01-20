@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta, timezone
 import json
 import queue
-import sys
 import threading
 import time
 from src.log_config import logger
@@ -69,7 +68,7 @@ def get_command_list(env: AgentEnv) -> list[str]:
 
 
 def wait_until_new_command_available(env: AgentEnv):
-	print("Waiting until new command available...", file=sys.stderr)
+	print("Waiting until new command available...")
 	while True:
 		time.sleep(env.iteration_interval)
 		stream_submissions_to_state(env)
@@ -158,8 +157,7 @@ def run_agent(env: AgentEnv):
 		fmtlog.code(yaml_dump(model_action.model_dump()))
 
 		if env.confirm:
-			print("Press enter to continue...", file=sys.stderr)
-			input("")
+			input("Press enter to continue...")
 
 		stream_submissions_to_state(env)
 
@@ -176,7 +174,6 @@ def run_agent(env: AgentEnv):
 		env.save_state()
 
 		if env.confirm:
-			print("Press enter to continue...", file=sys.stderr)
-			input("")
+			input("Press enter to continue...")
 		else:
 			wait_until_new_command_available(env)
