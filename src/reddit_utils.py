@@ -74,16 +74,16 @@ def show_conversation(reddit: Reddit, comment_id: str) -> list[dict[str, str]]:
 	root_submission, comments = get_comment_chain(comment, reddit)
 	items: list[dict[str, str]] = []
 	items.append({
+	    'content_id': SUBMISSION_PREFIX + root_submission.id,
 	    'author': get_author_name(root_submission),
 	    'title': root_submission.title,
 	    'text': root_submission.selftext,
-	    'content_id': SUBMISSION_PREFIX + root_submission.id,
 	})
 	for c in comments:
 		items.append({
+		    'content_id': COMMENT_PREFIX + c.id,
 		    'author': get_author_name(c),
 		    'text': c.body,
-		    'content_id': COMMENT_PREFIX + c.id,
 		})
 	return items
 
