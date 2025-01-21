@@ -11,5 +11,5 @@ class Action(BaseModel):
 
 class BaseProvider(ABC):
 	@abstractmethod
-	def get_action(self, system_prompt: str, trailing_prompt: str) -> Action | None:
+	def get_action(self, system_prompt: str) -> Action | None:
 		pass
