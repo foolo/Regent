@@ -86,10 +86,10 @@ def format_history(env: AgentEnv) -> str:
 	history_items: list[str] = []
 	for history_item in env.state.history:
 		history_items.append("### Your action:")
-		history_items.append(f"```yaml\n{json_to_yaml(history_item.model_action)}\n```")
+		history_items.append(f"```json\n{history_item.model_action}\n```")
 		history_items.append("")
 		history_items.append("### Result:")
-		history_items.append(f"```yaml\n{json_to_yaml(history_item.action_result)}\n```")
+		history_items.append(f"```json\n{history_item.action_result}\n```")
 	return "\n".join(history_items)
 
 
