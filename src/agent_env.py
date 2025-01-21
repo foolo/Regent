@@ -14,7 +14,6 @@ class AgentEnv:
 	provider: BaseProvider
 	reddit: Reddit
 	test_mode: bool
-	iteration_interval: int
 	state: AgentState = field(init=False)
 
 	def __post_init__(self):

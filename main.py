@@ -48,14 +48,12 @@ def run():
 	parser.add_argument("agent_schema_file", type=str, help="Path to the agent schema file.")
 	parser.add_argument("provider", type=str, help=f"AI provider to use. Available providers: {', '.join(available_providers)}")
 	parser.add_argument("--test_mode", action="store_true", help="Enable confirmation before each action or step. Create post will always be available.")
-	parser.add_argument("--iteration_interval", type=int, default=60, help="The interval in seconds between agent iterations.")
 	parser.add_argument("--log_level", type=str, default="INFO", help="Set the log level. Default: INFO")
 	parser.add_argument("--markdown_log_dir", type=str, help="Directory to save markdown logs (default: current working directory)", default=os.getcwd())
 	args = parser.parse_args()
 	assert isinstance(args.agent_schema_file, str)
 	assert isinstance(args.provider, str)
 	assert isinstance(args.test_mode, bool)
-	assert isinstance(args.iteration_interval, int)
 	assert isinstance(args.log_level, str)
 	assert isinstance(args.markdown_log_dir, str)
 
@@ -90,7 +88,7 @@ def run():
 	fmtlog.text(f'Loaded agent: {agent_config.name}')
 
 	agent_state_filename = 'agent_state.json'
-	agent_env = AgentEnv(agent_state_filename, agent_config, provider, reddit, args.test_mode, args.iteration_interval)
+	agent_env = AgentEnv(agent_state_filename, agent_config, provider, reddit, args.test_mode)
 	run_agent(agent_env)
 
 

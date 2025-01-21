@@ -70,7 +70,7 @@ def get_command_list(env: AgentEnv) -> list[str]:
 def wait_until_new_command_available(env: AgentEnv):
 	print("Waiting until new command available...")
 	while True:
-		time.sleep(env.iteration_interval)
+		time.sleep(10)
 		stream_submissions_to_state(env)
 		if ShowNewPost.available(env):
 			return
