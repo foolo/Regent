@@ -6,7 +6,7 @@ import time
 from src.log_config import logger
 from src.formatted_logger import fmtlog
 from praw.models import Submission  # type: ignore
-from src.commands import AgentEnv, Command, CreatePost, ShowConversationWithNewActivity, ShowNewPost
+from src.commands import AgentEnv, Command, CommandDecodeError, CreatePost, ShowConversationWithNewActivity, ShowNewPost
 from src.pydantic_models.agent_state import HistoryItem, StreamedSubmission
 from src.reddit_utils import get_current_user, list_inbox_comments
 from src.utils import confirm_yes_no, json_to_yaml, yaml_dump
@@ -162,8 +162,11 @@ def run_agent(env: AgentEnv):
 
 		stream_submissions_to_state(env)
 		if do_execute:
-			command = Command.decode(model_action)
-			action_result = command.execute(env)
+			try:
+				command = Command.decode(model_action)
+				action_result = command.execute(env)
+			except CommandDecodeError as e:
+				action_result = {"error": f"Could not decode command: {e}"}
 		else:
 			action_result = {"note": "Skipped execution"}
 		fmtlog.header(3, "Action result:")

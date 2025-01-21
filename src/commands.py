@@ -19,6 +19,10 @@ class CommandInfo:
 	description: str
 
 
+class CommandDecodeError(Exception):
+	pass
+
+
 class Command:
 	registry: dict[str, CommandInfo] = {}
 
@@ -33,7 +37,7 @@ class Command:
 	@classmethod
 	def decode(cls, action: Action) -> 'Command':
 		if action.command not in cls.registry:
-			raise ValueError(f"Unknown command: {action.command}")
+			raise CommandDecodeError(f"Unknown command: {action.command}")
 
 		command_cls = cls.registry[action.command]
 		return command_cls.command.instance_decode(action.parameters)
@@ -57,7 +61,7 @@ class ShowNewPost(Command):
 	@classmethod
 	def instance_decode(cls, args: list[str]) -> 'ShowNewPost':
 		if len(args) != 0:
-			raise ValueError(f"show_new_post requires 0 arguments, got {len(args)}")
+			raise CommandDecodeError(f"show_new_post requires 0 arguments, got {len(args)}")
 		return cls()
 
 	def execute(self, env: AgentEnv) -> dict[str, Any]:
@@ -83,7 +87,7 @@ class ShowConversationWithNewActivity(Command):
 	@classmethod
 	def instance_decode(cls, args: list[str]) -> 'ShowConversationWithNewActivity':
 		if len(args) != 0:
-			raise ValueError(f"show_conversation_with_new_activity requires 0 arguments, got {len(args)}")
+			raise CommandDecodeError(f"show_conversation_with_new_activity requires 0 arguments, got {len(args)}")
 		return cls()
 
 	def execute(self, env: AgentEnv) -> dict[str, Any]:
@@ -116,7 +120,7 @@ class ReplyToContent(Command):
 	@classmethod
 	def instance_decode(cls, args: list[str]) -> 'ReplyToContent':
 		if len(args) != 2:
-			raise ValueError(f"reply_to_content requires 2 arguments, got {len(args)}")
+			raise CommandDecodeError(f"reply_to_content requires 2 arguments, got {len(args)}")
 		return cls(content_id=args[0], reply_text=args[1])
 
 	def execute(self, env: AgentEnv):
@@ -174,7 +178,7 @@ class CreatePost(Command):
 	@classmethod
 	def instance_decode(cls, args: list[str]) -> 'CreatePost':
 		if len(args) != 3:
-			raise ValueError(f"create_post requires 3 arguments, got {len(args)}")
+			raise CommandDecodeError(f"create_post requires 3 arguments, got {len(args)}")
 		return cls(subreddit=args[0], post_title=args[1], post_text=args[2])
 
 	def execute(self, env: AgentEnv):
