@@ -122,16 +122,23 @@ def run_agent(env: AgentEnv):
 		fmtlog.code(json_to_yaml(history_item.action_result))
 
 	while True:
+		status_message = [
+		    f"Number of messages in inbox: {len(list_inbox_comments(env.reddit))}",
+		    f"Number of unread posts: {len(env.state.streamed_submissions)}",
+		    f"Your username is '{get_current_user(env.reddit).name}'.",
+		]
+		fmtlog.header(3, "Status message:")
+		fmtlog.text("\n".join(status_message))
+
 		system_prompt = "\n".join([
 		    system_intro,
 		    "",
 		    "## Agent description:",
 		    env.agent_config.agent_description,
 		    "",
-		    "Current status:",
-		    f"Number of messages in inbox: {len(list_inbox_comments(env.reddit))}",
-		    f"Number of unread posts: {len(env.state.streamed_submissions)}",
-		    f"Your username is '{get_current_user(env.reddit).name}'.",
+		    "## Current status:",
+		] + status_message + [
+		    "",
 		    "## Available commands:",
 		] + get_command_list(env) + [
 		    "",
