@@ -84,11 +84,11 @@ def format_history(env: AgentEnv) -> str:
 	if len(env.state.history) == 0:
 		return "(No history yet)"
 	history_items: list[str] = []
-	for history_item in env.state.history:
-		history_items.append("### Your action:")
+	for i, history_item in enumerate(env.state.history):
+		history_items.append(f"### Your action (history item {i + 1}):")
 		history_items.append(f"```json\n{history_item.model_action}\n```")
 		history_items.append("")
-		history_items.append("### Result:")
+		history_items.append(f"### Result of the action:")
 		history_items.append(f"```json\n{history_item.action_result}\n```")
 	return "\n".join(history_items)
 
@@ -105,10 +105,10 @@ def run_agent(env: AgentEnv):
 	stream_submissions_thread.start()
 	stream_submissions_to_state(env, wait_once=True)
 
-	system_message = f"You are a Reddit AI agent. You use a set of commands to interact with Reddit users. There are commands for replying to comments, creating posts, and more to help you achieve your goals. For each action you take, you also need to provide a motivation behind the action, which can include any future steps you plan to take. This will help you keep track of your strategy and make sure you are working towards your goals. You will be provided with a history of your recent actions (up to {env.agent_config.max_history_length} actions), your motivations, and the responses of the actions. You will also be provided with a list of available commands to perform your actions."
+	system_intro = f"You are a Reddit AI agent. You use a set of commands to interact with Reddit users. There are commands for replying to comments, creating posts, and more to help you achieve your goals. For each action you take, you also need to provide a motivation behind the action, which can include any future steps you plan to take. This will help you keep track of your strategy and make sure you are working towards your goals. You will be provided with a history of your recent actions (up to {env.agent_config.max_history_length} actions), your motivations, and the responses of the actions. You will also be provided with a list of available commands to perform your actions. Before you decide on an action, you should take the last action of the history into account, to follow up on the motivation you provided for the last action."
 
 	fmtlog.header(3, "System message:")
-	fmtlog.text(system_message)
+	fmtlog.text(system_intro)
 	fmtlog.header(3, "Agent description:")
 	fmtlog.text(env.agent_config.agent_description)
 
@@ -123,32 +123,27 @@ def run_agent(env: AgentEnv):
 
 	while True:
 		system_prompt = "\n".join([
-		    system_message,
+		    system_intro,
 		    "",
 		    "## Agent description:",
 		    env.agent_config.agent_description,
 		    "",
-		    "## History:",
-		    "",
-		    format_history(env),
-		])
-
-		user_prompt = "\n".join([
 		    "Current status:",
 		    f"Number of messages in inbox: {len(list_inbox_comments(env.reddit))}",
 		    f"Number of unread posts: {len(env.state.streamed_submissions)}",
 		    f"Your username is '{get_current_user(env.reddit).name}'.",
-		    "",
 		    "## Available commands:",
 		] + get_command_list(env) + [
 		    "",
-		    "Respond with the command and parameters you want to execute. Also provide a motivation behind the action, and any future steps you plan to take, to help keep track of your strategy."
+		    "## History:",
+		    "",
+		    format_history(env),
+		    "(End of history)",
+		    "",
+		    "Now, respond with the command you want to execute.",
 		])
 
-		fmtlog.header(3, "User prompt:")
-		fmtlog.code(user_prompt)
-
-		model_action = env.provider.get_action(system_prompt, user_prompt)
+		model_action = env.provider.get_action(system_prompt)
 		if model_action is None:
 			fmtlog.text("Error: Could not get model action.")
 			continue
