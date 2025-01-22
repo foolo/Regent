@@ -67,8 +67,7 @@ class ShowNewPost(Command):
 	def execute(self, env: AgentEnv) -> dict[str, Any]:
 		try:
 			if len(env.state.streamed_submissions) == 0:
-				return {'note': 'No new submissions'}
-
+				return {'note': 'No new posts'}
 			latest_submission = env.reddit.submission(env.state.streamed_submissions[-1].id)
 			del env.state.streamed_submissions[-1]
 			return get_comment_tree(env.reddit, latest_submission, 10)
