@@ -39,13 +39,13 @@ def stream_submissions_to_state(env: AgentEnv, wait_once: bool = False):
 					env.state.streamed_submissions.append(StreamedSubmission(id=s.id, timestamp=datetime.fromtimestamp(s.created_utc, timezone.utc)))
 		except queue.Empty:
 			break
-		submissions_newer_than_max_age: list[StreamedSubmission] = []
-		for s in env.state.streamed_submissions:
-			if s.timestamp > datetime.now(timezone.utc) - timedelta(hours=env.agent_config.max_post_age_for_replying_hours):
-				submissions_newer_than_max_age.append(s)
-			else:
-				logger.info(f"Removing post older than {env.agent_config.max_post_age_for_replying_hours} hours: {s.timestamp}")
-		env.state.streamed_submissions = submissions_newer_than_max_age
+	submissions_newer_than_max_age: list[StreamedSubmission] = []
+	for s in env.state.streamed_submissions:
+		if s.timestamp > datetime.now(timezone.utc) - timedelta(hours=env.agent_config.max_post_age_for_replying_hours):
+			submissions_newer_than_max_age.append(s)
+		else:
+			logger.info(f"Removing post older than {env.agent_config.max_post_age_for_replying_hours} hours: {s.timestamp}")
+	env.state.streamed_submissions = submissions_newer_than_max_age
 	env.save_state()
 
 
