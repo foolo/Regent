@@ -14,6 +14,13 @@ from src.utils import confirm_yes_no, json_to_yaml, yaml_dump
 submission_queue: queue.Queue[Submission] = queue.Queue()
 
 
+def already_streamed(env: AgentEnv, submission: Submission) -> bool:
+	for s in env.state.streamed_submissions:
+		if s.id == submission.id:
+			return True
+	return False
+
+
 def stream_submissions_to_state(env: AgentEnv, wait_once: bool = False):
 	while True:
 		try:
@@ -26,7 +33,10 @@ def stream_submissions_to_state(env: AgentEnv, wait_once: bool = False):
 				logger.debug(f"Skipping post older than {env.state.streamed_submissions_until_timestamp}: {s.title}")
 			else:
 				env.state.streamed_submissions_until_timestamp = datetime.fromtimestamp(s.created_utc, timezone.utc)
-				env.state.streamed_submissions.append(StreamedSubmission(id=s.id, timestamp=datetime.fromtimestamp(s.created_utc, timezone.utc)))
+				if already_streamed(env, s):
+					logger.info(f"Skipping already streamed post: {s.id}, {s.title}")
+				else:
+					env.state.streamed_submissions.append(StreamedSubmission(id=s.id, timestamp=datetime.fromtimestamp(s.created_utc, timezone.utc)))
 		except queue.Empty:
 			break
 		submissions_newer_than_max_age: list[StreamedSubmission] = []
