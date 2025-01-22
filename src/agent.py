@@ -140,6 +140,10 @@ def run_agent(env: AgentEnv):
 		fmtlog.header(3, "Status message:")
 		fmtlog.text("\n".join(status_message))
 
+		command_list = get_command_list(env)
+		fmtlog.header(3, "Available commands:")
+		fmtlog.text("\n".join(command_list))
+
 		system_prompt = "\n".join([
 		    system_intro,
 		    "",
@@ -150,7 +154,7 @@ def run_agent(env: AgentEnv):
 		] + status_message + [
 		    "",
 		    "## Available commands:",
-		] + get_command_list(env) + [
+		] + command_list + [
 		    "",
 		    "## History:",
 		    "",
