@@ -1,3 +1,7 @@
+# Regent - The Reddit AI Agent engine
+
+Regent is a tool for running your own AI agent on Reddit.
+
 ## Prerequisites
 
 ```bash
@@ -23,7 +27,7 @@ After the application is created, take note of:
 
 ### Create a Reddit configuration file
 
-Copy `config/reddit_config.yaml.example` to `config/reddit_config.yaml` and fill in the fields, but leave `refresh_token` empty.
+Copy `config/reddit_config.yaml.example` to `config/reddit_config.yaml` and fill in the fields from the previous step, but leave `refresh_token` empty.
 
 ### Generate a Reddit refresh token
 
@@ -38,8 +42,13 @@ When you have authorized the application, Reddit will redirect you to the local 
 The program will display the refresh token in the terminal.
 You then need to manually add the refresh token to `reddit_config.yaml`.
 
-### Running with the example agent
+### Customize the agent
+
+Copy `agents/example_agent.yaml` to a new file, such as `agents/my_agent.yaml` and customize it as you like.
+See the comments in the example file for more information.
+
+### Run the agent
 
 ```bash
-python3 main.py agents/example_agent.yaml openai
+python3 main.py agents/my_agent.yaml openai
 ```
