@@ -71,8 +71,8 @@ class ShowNewPost(Command):
 			latest_submission = env.reddit.submission(env.state.streamed_submissions[-1].id)
 			del env.state.streamed_submissions[-1]
 			return get_comment_tree(env.reddit, latest_submission, 10)
-		except Exception as e:
-			logger.exception(f"Error fetching new post. Exception: {e}")
+		except Exception:
+			logger.exception(f"Error fetching new post.")
 			return {'error': 'Could not fetch new post'}
 
 	@classmethod
@@ -99,8 +99,8 @@ class ShowConversationWithNewActivity(Command):
 			if mark_as_read:
 				comment.mark_read()
 			conversation = show_conversation(env.reddit, comment.id)
-		except Exception as e:
-			logger.exception(f"Error showing conversation. Exception: {e}")
+		except Exception:
+			logger.exception(f"Error showing conversation.")
 			return {'error': f"Could not show conversation"}
 		return {'conversation': conversation}
 
@@ -128,12 +128,12 @@ class ReplyToContent(Command):
 				submission_id = self.content_id[len(SUBMISSION_PREFIX):]
 				submission = env.reddit.submission(submission_id)
 				submission.title  # Check if submission exists
-			except Exception as e:
+			except Exception:
 				return {'error': f"Could not fetch post with ID: {self.content_id}"}
 			try:
 				submission.reply(self.reply_text)
-			except Exception as e:
-				logger.exception(f"Error replying to post. Exception: {e}")
+			except Exception:
+				logger.exception(f"Error replying to post.")
 				return {'error': f"Could not reply to post with ID: {self.content_id}"}
 			return {'result': 'Reply posted successfully'}
 		elif self.content_id.startswith(COMMENT_PREFIX):
@@ -141,12 +141,12 @@ class ReplyToContent(Command):
 				comment_id = self.content_id[len(COMMENT_PREFIX):]
 				comment = env.reddit.comment(comment_id)
 				comment.refresh()
-			except ClientException as e:
+			except ClientException:
 				return {'error': f"Could not fetch comment with ID: {self.content_id}"}
 			try:
 				comment.reply(self.reply_text)
-			except Exception as e:
-				logger.exception(f"Error replying to comment. Exception: {e}")
+			except Exception:
+				logger.exception(f"Error replying to comment.")
 				return {'error': f"Could not reply to comment with ID: {self.content_id}"}
 			return {'result': 'Reply posted successfully'}
 		else:
@@ -190,8 +190,8 @@ class CreatePost(Command):
 				return {'result': 'Post created'}
 			else:
 				return {'error': f"Not enough time has passed since the last post. Time until next post possible: {seconds_to_hms(time_left)}"}
-		except Exception as e:
-			logger.exception(f"Error creating post. Exception: {e}")
+		except Exception:
+			logger.exception(f"Error creating post.")
 			return {'error': 'Could not create post'}
 
 	@classmethod
