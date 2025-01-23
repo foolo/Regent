@@ -133,7 +133,7 @@ class CreatePost(Command):
 				env.reddit.subreddit(self.subreddit).submit(self.post_title, selftext=self.post_text)
 				return {'result': 'Post created'}
 			else:
-				return {'error': f"Not enough time has passed since the last post. Time until next post possible: {seconds_to_hms(time_left)}"}
+				return {'error': f"Not enough time has passed since the last post. Time until next post possible: {seconds_to_hms(int(time_left))}"}
 		except Exception:
 			logger.exception(f"Error creating post.")
 			return {'error': 'Could not create post'}
