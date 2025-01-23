@@ -156,7 +156,7 @@ class PerformActionResult:
 
 
 def perform_action(env: AgentEnv) -> PerformActionResult | None:
-	if time_until_create_post_possible(env.reddit, env.agent_config) <= 0:
+	if env.agent_config.can_create_posts and time_until_create_post_possible(env.reddit, env.agent_config) <= 0:
 		system_prompt = "\n".join(get_leading_system_prompt(env) + [
 		    "",
 		    "Your task is to create a new post in one of the subreddits you are active on.",
