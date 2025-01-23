@@ -8,7 +8,7 @@ from praw.exceptions import ClientException  # type: ignore
 from abc import abstractmethod
 from src.providers.base_provider import Action
 from src.pydantic_models.agent_config import AgentConfig
-from src.reddit_utils import COMMENT_PREFIX, SUBMISSION_PREFIX, get_current_user, get_latest_submission
+from src.reddit_utils import COMMENT_PREFIX, SUBMISSION_PREFIX, canonicalize_subreddit_name, get_current_user, get_latest_submission
 from src.utils import seconds_to_hms
 
 
@@ -115,7 +115,7 @@ def time_until_create_post_possible(reddit: Reddit, agent_config: AgentConfig) -
 @Command.register("create_post", ['SUBREDDIT', 'POST_TITLE', 'POST_TEXT'], "Create a post in the given subreddit with the given title and text")
 @dataclass
 class CreatePost(Command):
-	subreddit_lcase: str
+	subreddit: str
 	post_title: str
 	post_text: str
 
@@ -123,18 +123,15 @@ class CreatePost(Command):
 	def instance_decode(cls, args: list[str]) -> 'CreatePost':
 		if len(args) != 3:
 			raise CommandDecodeError(f"create_post requires 3 arguments, got {len(args)}")
-		subreddit = args[0].strip().lower()
-		if subreddit.startswith('r/'):
-			subreddit = subreddit[2:]
-		return cls(subreddit_lcase=subreddit, post_title=args[1], post_text=args[2])
+		return cls(subreddit=canonicalize_subreddit_name(args[0]), post_title=args[1], post_text=args[2])
 
 	def execute(self, env: AgentEnv):
 		try:
 			time_left = time_until_create_post_possible(env.reddit, env.agent_config)
 			if time_left <= 0:
-				if not self.subreddit_lcase in [s.lower() for s in env.agent_config.active_on_subreddits]:
-					return {'error': f"You are not active on the subreddit: {self.subreddit_lcase}"}
-				env.reddit.subreddit(self.subreddit_lcase).submit(self.post_title, selftext=self.post_text)
+				if not self.subreddit in [s.lower() for s in env.agent_config.active_on_subreddits]:
+					return {'error': f"You are not active on the subreddit: {self.subreddit}"}
+				env.reddit.subreddit(self.subreddit).submit(self.post_title, selftext=self.post_text)
 				return {'result': 'Post created'}
 			else:
 				return {'error': f"Not enough time has passed since the last post. Time until next post possible: {seconds_to_hms(time_left)}"}

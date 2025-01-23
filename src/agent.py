@@ -10,7 +10,7 @@ from src.formatted_logger import fmtlog
 from praw.models import Submission  # type: ignore
 from src.commands import AgentEnv, Command, CommandDecodeError, CreatePost, time_until_create_post_possible
 from src.pydantic_models.agent_state import HistoryItem, StreamedSubmission
-from src.reddit_utils import get_comment_tree, get_current_user, list_inbox_comments, show_conversation
+from src.reddit_utils import canonicalize_subreddit_name, get_comment_tree, get_current_user, list_inbox_comments, show_conversation
 from src.utils import confirm_yes_no, json_to_yaml, yaml_dump
 
 submission_queue: queue.Queue[Submission] = queue.Queue()
@@ -171,9 +171,7 @@ def perform_action(env: AgentEnv) -> PerformActionResult | None:
 		fmtlog.code(yaml_dump(submission.model_dump()))
 		do_execute = not env.test_mode or confirm_yes_no("Execute the action?")
 		if do_execute:
-			subreddit = submission.subreddit.lower().strip()
-			if subreddit.startswith("r/"):
-				subreddit = subreddit[2:]
+			subreddit = canonicalize_subreddit_name(submission.subreddit)
 			if not subreddit in [subreddit.lower() for subreddit in env.agent_config.active_on_subreddits]:
 				return PerformActionResult(model_action=submission.model_dump(), action_result={'error': f"You are not active on the subreddit: {subreddit}"})
 			env.reddit.subreddit(subreddit).submit(submission.title, selftext=submission.text)

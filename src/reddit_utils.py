@@ -187,3 +187,10 @@ def get_comment_tree(reddit: Reddit, submission: Submission, max_size: int) -> d
 	    'text': submission.selftext,
 	    'children': [r.to_dict() for r in cropped_tree],
 	}
+
+
+def canonicalize_subreddit_name(subreddit_name: str) -> str:
+	subreddit = subreddit_name.strip().lower()
+	if subreddit.startswith('r/'):
+		subreddit = subreddit[2:]
+	return subreddit
