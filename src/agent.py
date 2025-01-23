@@ -109,7 +109,16 @@ def get_new_event(env: AgentEnv) -> str | None:
 	return None
 
 
-def handle_event(env: AgentEnv, system_intro: str, event_message: str):
+system_intro = " ".join([
+    "You are a Reddit AI agent.",
+    "You use a set of commands to interact with Reddit users.",
+    "There are commands for replying to comments, creating posts, and more to help you achieve your goals.",
+    "For each action you take, you also need to provide a motivation behind the action, which can include any future steps you plan to take.",
+    "This will help you keep track of your strategy and make sure you are working towards your goals.",
+])
+
+
+def handle_event(env: AgentEnv, event_message: str):
 	system_prompt = "\n".join([
 	    system_intro,
 	    "",
@@ -171,14 +180,6 @@ def run_agent(env: AgentEnv):
 	stream_submissions_thread.start()
 	stream_submissions_to_state(env, wait_once=True)
 
-	system_intro = " ".join([
-	    "You are a Reddit AI agent.",
-	    "You use a set of commands to interact with Reddit users.",
-	    "There are commands for replying to comments, creating posts, and more to help you achieve your goals.",
-	    "For each action you take, you also need to provide a motivation behind the action, which can include any future steps you plan to take.",
-	    "This will help you keep track of your strategy and make sure you are working towards your goals.",
-	])
-
 	fmtlog.header(3, "History:")
 	if len(env.state.history) == 0:
 		fmtlog.text("No history yet.")
@@ -192,7 +193,7 @@ def run_agent(env: AgentEnv):
 		try:
 			event_message = get_new_event(env)
 			if event_message:
-				handle_event(env, system_intro, event_message)
+				handle_event(env, event_message)
 			else:
 				fmtlog.text("No new events.")
 		except Exception:
