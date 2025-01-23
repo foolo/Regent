@@ -89,10 +89,10 @@ def append_to_history(env: AgentEnv, history_item: HistoryItem):
 
 def get_new_event(env: AgentEnv) -> str | None:
 	fmtlog.header(3, "Waiting for event...")
-	fmtlog.text(f"Number of messages in inbox: {len(list_inbox_comments(env.reddit))}")
+	comments = list_inbox_comments(env.reddit)
+	fmtlog.text(f"Number of messages in inbox: {len(comments)}")
 	fmtlog.text(f"Number of unread posts: {len(env.state.streamed_submissions)}")
 	stream_submissions_to_state(env)
-	comments = list_inbox_comments(env.reddit)
 	if len(comments) > 0:
 		comment = comments[0]
 		mark_as_read = not env.test_mode or confirm_yes_no("Mark comment as read?")
