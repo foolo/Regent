@@ -8,8 +8,8 @@ from praw.exceptions import ClientException  # type: ignore
 from abc import abstractmethod
 from src.providers.base_provider import Action
 from src.pydantic_models.agent_config import AgentConfig
-from src.reddit_utils import COMMENT_PREFIX, SUBMISSION_PREFIX, get_comment_tree, get_current_user, get_latest_submission, list_inbox_comments, show_conversation
-from src.utils import confirm_yes_no, seconds_to_hms
+from src.reddit_utils import COMMENT_PREFIX, SUBMISSION_PREFIX, get_current_user, get_latest_submission
+from src.utils import seconds_to_hms
 
 
 @dataclass
@@ -55,62 +55,7 @@ class Command:
 		raise NotImplementedError("Available method must be implemented by subclasses")
 
 
-@Command.register("show_new_post", [], "Show the newest post in the monitored subreddits")
-@dataclass
-class ShowNewPost(Command):
-	@classmethod
-	def instance_decode(cls, args: list[str]) -> 'ShowNewPost':
-		if len(args) != 0:
-			raise CommandDecodeError(f"show_new_post requires 0 arguments, got {len(args)}")
-		return cls()
-
-	def execute(self, env: AgentEnv) -> dict[str, Any]:
-		try:
-			if len(env.state.streamed_submissions) == 0:
-				return {'note': 'No new posts'}
-			latest_submission = env.reddit.submission(env.state.streamed_submissions[-1].id)
-			del env.state.streamed_submissions[-1]
-			return get_comment_tree(env.reddit, latest_submission, 10)
-		except Exception:
-			logger.exception(f"Error fetching new post.")
-			return {'error': 'Could not fetch new post'}
-
-	@classmethod
-	def available(cls, env: AgentEnv) -> bool:
-		return len(env.state.streamed_submissions) > 0
-
-
-@Command.register("show_conversation_with_new_activity", [], "If you have new comments in your inbox, show the whole conversation for the newest one")
-@dataclass
-class ShowConversationWithNewActivity(Command):
-	@classmethod
-	def instance_decode(cls, args: list[str]) -> 'ShowConversationWithNewActivity':
-		if len(args) != 0:
-			raise CommandDecodeError(f"show_conversation_with_new_activity requires 0 arguments, got {len(args)}")
-		return cls()
-
-	def execute(self, env: AgentEnv) -> dict[str, Any]:
-		try:
-			comments = list_inbox_comments(env.reddit)
-			if len(comments) == 0:
-				return {'note': 'No new comments in inbox'}
-			comment = comments[0]
-			mark_as_read = not env.test_mode or confirm_yes_no("Mark comment as read?")
-			if mark_as_read:
-				comment.mark_read()
-			conversation = show_conversation(env.reddit, comment.id)
-		except Exception:
-			logger.exception(f"Error showing conversation.")
-			return {'error': f"Could not show conversation"}
-		return {'conversation': conversation}
-
-	@classmethod
-	def available(cls, env: AgentEnv) -> bool:
-		return len(list_inbox_comments(env.reddit)) > 0
-
-
-@Command.register("reply_to_content", ['CONTENT_ID', 'REPLY_TEXT'],
-                  "Reply to a post or comment with the given ID. You can get comment IDs from the inbox, and post IDs from the 'show_new_post' command")
+@Command.register("reply_to_content", ['CONTENT_ID', 'REPLY_TEXT'], "Reply to a post or comment with the given ID.")
 @dataclass
 class ReplyToContent(Command):
 	content_id: str
@@ -201,3 +146,20 @@ class CreatePost(Command):
 		if env.test_mode:
 			return True
 		return time_until_create_post_possible(env.reddit, env.agent_config) <= 0
+
+
+@Command.register("ignore", [], "Ignore the current event")
+@dataclass
+class Ignore(Command):
+	@classmethod
+	def instance_decode(cls, args: list[str]) -> 'Ignore':
+		if len(args) != 0:
+			raise CommandDecodeError(f"ignore does not take any arguments, got {len(args)}")
+		return cls()
+
+	def execute(self, env: AgentEnv):
+		return {'result': 'Event ignored'}
+
+	@classmethod
+	def available(cls, env: AgentEnv) -> bool:
+		return True

@@ -6,9 +6,9 @@ import time
 from src.log_config import logger
 from src.formatted_logger import fmtlog
 from praw.models import Submission  # type: ignore
-from src.commands import AgentEnv, Command, CommandDecodeError, CreatePost, ShowConversationWithNewActivity, ShowNewPost
+from src.commands import AgentEnv, Command, CommandDecodeError, CreatePost
 from src.pydantic_models.agent_state import HistoryItem, StreamedSubmission
-from src.reddit_utils import get_current_user, list_inbox_comments
+from src.reddit_utils import get_comment_tree, get_current_user, list_inbox_comments, show_conversation
 from src.utils import confirm_yes_no, json_to_yaml, yaml_dump
 
 submission_queue: queue.Queue[Submission] = queue.Queue()
@@ -77,36 +77,92 @@ def get_command_list(env: AgentEnv) -> list[str]:
 	return commands
 
 
-def wait_until_new_command_available(env: AgentEnv):
-	print("Waiting until new command available...")
-	while True:
-		time.sleep(10)
-		stream_submissions_to_state(env)
-		if ShowNewPost.available(env):
-			return
-		if ShowConversationWithNewActivity.available(env):
-			return
-		if CreatePost.available(env):
-			return
-
-
-def format_history(env: AgentEnv) -> str:
-	if len(env.state.history) == 0:
-		return "(No history yet)"
-	history_items: list[str] = []
-	for i, history_item in enumerate(env.state.history):
-		history_items.append(f"### Your action (history item {i + 1}):")
-		history_items.append(f"```json\n{history_item.model_action}\n```")
-		history_items.append("")
-		history_items.append(f"### Result of the action:")
-		history_items.append(f"```json\n{history_item.action_result}\n```")
-	return "\n".join(history_items)
-
-
 def append_to_history(env: AgentEnv, history_item: HistoryItem):
 	env.state.history.append(history_item)
 	if len(env.state.history) > env.agent_config.max_history_length:
 		env.state.history = env.state.history[-env.agent_config.max_history_length:]
+
+
+def get_new_event(env: AgentEnv) -> str | None:
+	fmtlog.header(3, "Waiting for event...")
+	fmtlog.text(f"Number of messages in inbox: {len(list_inbox_comments(env.reddit))}")
+	fmtlog.text(f"Number of unread posts: {len(env.state.streamed_submissions)}")
+	stream_submissions_to_state(env)
+	comments = list_inbox_comments(env.reddit)
+	if len(comments) > 0:
+		comment = comments[0]
+		mark_as_read = not env.test_mode or confirm_yes_no("Mark comment as read?")
+		if mark_as_read:
+			comment.mark_read()
+		conversation = show_conversation(env.reddit, comment.id)
+		json_msg = json.dumps(conversation, ensure_ascii=False, indent=2)
+		return f"You have a new comment in your inbox. Here is the conversation:\n\n```json\n{json_msg}\n```"
+	if len(env.state.streamed_submissions) > 0:
+		latest_submission = env.reddit.submission(env.state.streamed_submissions[-1].id)
+		del env.state.streamed_submissions[-1]
+		max_comment_tree_size = 20
+		comment_tree = get_comment_tree(env.reddit, latest_submission, max_comment_tree_size)
+		json_msg = json.dumps(comment_tree, ensure_ascii=False, indent=2)
+		return f"You have a new post in the monitored subreddits. Here is the conversation tree, with the {max_comment_tree_size} highest rated comments:\n\n```json\n{json_msg}\n```"
+	if CreatePost.available(env):
+		return "You can choose to create a new post."
+	return None
+
+
+def handle_event(env: AgentEnv, system_intro: str, event_message: str):
+	system_prompt = "\n".join([
+	    system_intro,
+	    "",
+	    f"You will be provided with:",
+	    "An event message that describes the last incoming event, which you can react to.",
+	    "A list of available commands to perform your actions.",
+	    "",
+	    "## Agent instructions:",
+	    env.agent_config.agent_instructions,
+	    "",
+	    "## Current status:",
+	    f"Your username is '{get_current_user(env.reddit).name}'.",
+	    "",
+	    "## Event message:",
+	    event_message,
+	    "",
+	    "## Available commands:",
+	] + get_command_list(env) + [
+	    "",
+	    "Now, respond with the command you want to execute.",
+	])
+
+	fmtlog.header(3, "System prompt:")
+	fmtlog.text(system_prompt)
+
+	model_action = env.provider.get_action(system_prompt)
+	if model_action is None:
+		fmtlog.text("Error: Could not get model action.")
+		return
+
+	fmtlog.header(3, f"Model action: {model_action.command}")
+	fmtlog.code(yaml_dump(model_action.model_dump()))
+
+	do_execute = not env.test_mode or confirm_yes_no("Execute the action?")
+
+	stream_submissions_to_state(env)
+	if do_execute:
+		try:
+			command = Command.decode(model_action)
+			action_result = command.execute(env)
+		except CommandDecodeError as e:
+			action_result = {"error": f"Could not decode command: {e}"}
+	else:
+		action_result = {"note": "Skipped execution"}
+	fmtlog.header(3, "Action result:")
+	fmtlog.code(yaml_dump(action_result))
+
+	append_to_history(env, HistoryItem(
+	    model_action=json.dumps(model_action.model_dump(), ensure_ascii=False),
+	    action_result=json.dumps(action_result, ensure_ascii=False),
+	))
+
+	env.save_state()
 
 
 def run_agent(env: AgentEnv):
@@ -121,15 +177,7 @@ def run_agent(env: AgentEnv):
 	    "There are commands for replying to comments, creating posts, and more to help you achieve your goals.",
 	    "For each action you take, you also need to provide a motivation behind the action, which can include any future steps you plan to take.",
 	    "This will help you keep track of your strategy and make sure you are working towards your goals.",
-	    f"You will be provided with a history of your recent actions (up to {env.agent_config.max_history_length} actions), your motivations, and the responses of the actions.",
-	    "You will also be provided with a list of available commands to perform your actions.",
-	    "Before you decide on an action, you should take the last action of the history into account, to follow up on the motivation you provided for the last action.",
 	])
-
-	fmtlog.header(3, "System intro:")
-	fmtlog.text(system_intro)
-	fmtlog.header(3, "Agent instructions:")
-	fmtlog.text(env.agent_config.agent_instructions)
 
 	fmtlog.header(3, "History:")
 	if len(env.state.history) == 0:
@@ -141,68 +189,17 @@ def run_agent(env: AgentEnv):
 		fmtlog.code(json_to_yaml(history_item.action_result))
 
 	while True:
-		status_message = [
-		    f"Number of messages in inbox: {len(list_inbox_comments(env.reddit))}",
-		    f"Number of unread posts: {len(env.state.streamed_submissions)}",
-		    f"Your username is '{get_current_user(env.reddit).name}'.",
-		]
-		fmtlog.header(3, "Status message:")
-		fmtlog.text("\n".join(status_message))
-
-		command_list = get_command_list(env)
-		fmtlog.header(3, "Available commands:")
-		fmtlog.text("\n".join(command_list))
-
-		system_prompt = "\n".join([
-		    system_intro,
-		    "",
-		    "## Agent instructions:",
-		    env.agent_config.agent_instructions,
-		    "",
-		    "## Current status:",
-		] + status_message + [
-		    "",
-		    "## Available commands:",
-		] + command_list + [
-		    "",
-		    "## History:",
-		    "",
-		    format_history(env),
-		    "(End of history)",
-		    "",
-		    "Now, respond with the command you want to execute.",
-		])
-
-		model_action = env.provider.get_action(system_prompt)
-		if model_action is None:
-			fmtlog.text("Error: Could not get model action.")
-			continue
-
-		fmtlog.header(3, f"Model action: {model_action.command}")
-		fmtlog.code(yaml_dump(model_action.model_dump()))
-
-		do_execute = not env.test_mode or confirm_yes_no("Execute the action?")
-
-		stream_submissions_to_state(env)
-		if do_execute:
-			try:
-				command = Command.decode(model_action)
-				action_result = command.execute(env)
-			except CommandDecodeError as e:
-				action_result = {"error": f"Could not decode command: {e}"}
-		else:
-			action_result = {"note": "Skipped execution"}
-		fmtlog.header(3, "Action result:")
-		fmtlog.code(yaml_dump(action_result))
-
-		append_to_history(env, HistoryItem(
-		    model_action=json.dumps(model_action.model_dump(), ensure_ascii=False),
-		    action_result=json.dumps(action_result, ensure_ascii=False),
-		))
-
-		env.save_state()
+		try:
+			event_message = get_new_event(env)
+			if event_message:
+				handle_event(env, system_intro, event_message)
+			else:
+				fmtlog.text("No new events.")
+		except Exception:
+			logger.exception("Error in wait_for_event")
 
 		if env.test_mode:
 			input("Press enter to continue...")
 		else:
-			wait_until_new_command_available(env)
+			print("Wait for 10 seconds before handling the next event.")
+			time.sleep(10)
