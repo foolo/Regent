@@ -128,8 +128,8 @@ def run_agent(env: AgentEnv):
 
 	fmtlog.header(3, "System message:")
 	fmtlog.text(system_intro)
-	fmtlog.header(3, "Agent description:")
-	fmtlog.text(env.agent_config.agent_description)
+	fmtlog.header(3, "Agent instructions:")
+	fmtlog.text(env.agent_config.agent_instructions)
 
 	fmtlog.header(3, "History:")
 	if len(env.state.history) == 0:
@@ -156,8 +156,8 @@ def run_agent(env: AgentEnv):
 		system_prompt = "\n".join([
 		    system_intro,
 		    "",
-		    "## Agent description:",
-		    env.agent_config.agent_description,
+		    "## Agent instructions:",
+		    env.agent_config.agent_instructions,
 		    "",
 		    "## Current status:",
 		] + status_message + [
