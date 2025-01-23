@@ -48,6 +48,8 @@ def stream_submissions_to_state(env: AgentEnv, wait_once: bool = False):
 		else:
 			logger.info(f"Removing post older than {env.agent_config.max_post_age_for_replying_hours} hours: {s.timestamp}")
 	env.state.streamed_submissions = submissions_newer_than_max_age
+	max_streamed_submissions = 8
+	env.state.streamed_submissions = env.state.streamed_submissions[-max_streamed_submissions:]
 	env.save_state()
 
 
