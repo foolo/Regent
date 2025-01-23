@@ -102,14 +102,13 @@ class ReplyToContent(Command):
 		return env.agent_config.can_reply_to_content
 
 
-def time_until_create_post_possible(reddit: Reddit, agent_config: AgentConfig) -> int:
+def seconds_since_last_post(reddit: Reddit, agent_config: AgentConfig) -> int:
 	current_user = get_current_user(reddit)
 	latest_submission = get_latest_submission(current_user)
 	if not latest_submission:
 		return 0
 	current_utc = int(time.time())
-	min_post_interval_hrs = agent_config.minimum_time_between_posts_hours
-	return int(max(latest_submission.created_utc + min_post_interval_hrs * 3600 - current_utc, 0))
+	return max(current_utc - int(latest_submission.created_utc), 0)
 
 
 @Command.register("create_post", ['SUBREDDIT', 'POST_TITLE', 'POST_TEXT'], "Create a post in the given subreddit with the given title and text")
@@ -127,7 +126,7 @@ class CreatePost(Command):
 
 	def execute(self, env: AgentEnv):
 		try:
-			time_left = time_until_create_post_possible(env.reddit, env.agent_config)
+			time_left = env.agent_config.minimum_time_between_posts_hours * 3600 - seconds_since_last_post(env.reddit, env.agent_config)
 			if time_left <= 0:
 				if not self.subreddit in [s.lower() for s in env.agent_config.active_on_subreddits]:
 					return {'error': f"You are not active on the subreddit: {self.subreddit}"}
@@ -145,7 +144,7 @@ class CreatePost(Command):
 			return False
 		if env.test_mode:
 			return True
-		return time_until_create_post_possible(env.reddit, env.agent_config) <= 0
+		return seconds_since_last_post(env.reddit, env.agent_config) >= env.agent_config.minimum_time_between_posts_hours * 3600
 
 
 @Command.register("ignore", [], "Ignore the current event")

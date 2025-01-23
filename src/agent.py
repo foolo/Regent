@@ -8,7 +8,7 @@ from typing import Any
 from src.log_config import logger
 from src.formatted_logger import fmtlog
 from praw.models import Submission  # type: ignore
-from src.commands import AgentEnv, Command, CommandDecodeError, CreatePost, time_until_create_post_possible
+from src.commands import AgentEnv, Command, CommandDecodeError, CreatePost, seconds_since_last_post
 from src.pydantic_models.agent_state import HistoryItem, StreamedSubmission
 from src.reddit_utils import canonicalize_subreddit_name, get_comment_tree, get_current_user, list_inbox_comments, show_conversation
 from src.utils import confirm_yes_no, json_to_yaml, yaml_dump
@@ -158,7 +158,7 @@ class PerformActionResult:
 
 
 def perform_action(env: AgentEnv) -> PerformActionResult | None:
-	if env.agent_config.can_create_posts and time_until_create_post_possible(env.reddit, env.agent_config) <= 0:
+	if env.agent_config.can_create_posts and seconds_since_last_post(env.reddit, env.agent_config) >= env.agent_config.minimum_time_between_posts_hours * 3600:
 		system_prompt = "\n".join(get_leading_system_prompt(env) + [
 		    "",
 		    "Your task is to create a new post in one of the subreddits you are active on.",
