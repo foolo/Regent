@@ -126,7 +126,7 @@ def run_agent(env: AgentEnv):
 	    "Before you decide on an action, you should take the last action of the history into account, to follow up on the motivation you provided for the last action.",
 	])
 
-	fmtlog.header(3, "System message:")
+	fmtlog.header(3, "System intro:")
 	fmtlog.text(system_intro)
 	fmtlog.header(3, "Agent instructions:")
 	fmtlog.text(env.agent_config.agent_instructions)
