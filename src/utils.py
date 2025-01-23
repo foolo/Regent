@@ -5,6 +5,7 @@ import unittest
 
 
 def seconds_to_hms(seconds: int) -> str:
+	seconds = int(seconds)
 	if seconds < 0:
 		raise ValueError("seconds must not be negative")
 	hours, remainder = divmod(seconds, 3600)
@@ -42,6 +43,8 @@ class TestSecondsToDHMS(unittest.TestCase):
 		self.assertEqual(seconds_to_hms(89999), "24h")
 		self.assertEqual(seconds_to_hms(90000), "25h")
 		self.assertEqual(seconds_to_hms(268200), "74h")
+		seconds_float: Any = 61.5
+		self.assertEqual(seconds_to_hms(seconds_float), "1m 1s")
 
 
 def yaml_dump(obj: Any) -> str:
