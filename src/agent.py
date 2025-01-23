@@ -103,7 +103,7 @@ def get_new_event(env: AgentEnv) -> str | None:
 		latest_submission = env.reddit.submission(env.state.streamed_submissions[-1].id)
 		del env.state.streamed_submissions[-1]
 		max_comment_tree_size = 20
-		comment_tree = get_comment_tree(env.reddit, latest_submission, max_comment_tree_size)
+		comment_tree = get_comment_tree(latest_submission, max_comment_tree_size)
 		json_msg = json.dumps(comment_tree, ensure_ascii=False, indent=2)
 		return f"You have a new post in the monitored subreddits. Here is the conversation tree, with the up to {max_comment_tree_size} highest rated comments:\n\n```json\n{json_msg}\n```"
 	if CreatePost.available(env):
