@@ -8,7 +8,7 @@ from typing import Any
 from src.log_config import logger
 from src.formatted_logger import fmtlog
 from praw.models import Submission  # type: ignore
-from src.commands import AgentEnv, Command, CommandDecodeError, CreatePost, seconds_since_last_post
+from src.commands import AgentEnv, Command, CommandDecodeError, seconds_since_last_post
 from src.pydantic_models.agent_state import HistoryItem, StreamedSubmission
 from src.reddit_utils import canonicalize_subreddit_name, get_comment_tree, get_current_user, list_inbox_comments, show_conversation
 from src.utils import confirm_yes_no, json_to_yaml, yaml_dump
@@ -108,8 +108,6 @@ def get_new_event(env: AgentEnv) -> str | None:
 		comment_tree = get_comment_tree(latest_submission, max_comment_tree_size)
 		json_msg = json.dumps(comment_tree, ensure_ascii=False, indent=2)
 		return f"You have a new post in the monitored subreddits. Here is the conversation tree, with the up to {max_comment_tree_size} highest rated comments:\n\n```json\n{json_msg}\n```"
-	if CreatePost.available(env):
-		return "You can choose to create a new post."
 	return None
 
 
