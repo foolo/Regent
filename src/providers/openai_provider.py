@@ -1,6 +1,6 @@
 from typing import Any
 from openai import OpenAI
-from src.providers.base_provider import Action, BaseProvider
+from src.providers.base_provider import Action, BaseProvider, Submission
 from src.pydantic_models.openai_config import OpenAIConfig
 
 
@@ -17,5 +17,16 @@ class OpenAIProvider(BaseProvider):
 		    model=self.model,
 		    messages=messages,
 		    response_format=Action,
+		)
+		return completion.choices[0].message.parsed
+
+	def generate_submission(self, system_prompt: str) -> Submission | None:
+		messages: list[Any] = []
+		messages.append({"role": 'system', "content": system_prompt})
+
+		completion = self.client.beta.chat.completions.parse(
+		    model=self.model,
+		    messages=messages,
+		    response_format=Submission,
 		)
 		return completion.choices[0].message.parsed

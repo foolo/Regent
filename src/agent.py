@@ -1,12 +1,14 @@
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 import json
 import queue
 import threading
 import time
+from typing import Any
 from src.log_config import logger
 from src.formatted_logger import fmtlog
 from praw.models import Submission  # type: ignore
-from src.commands import AgentEnv, Command, CommandDecodeError, CreatePost
+from src.commands import AgentEnv, Command, CommandDecodeError, CreatePost, time_until_create_post_possible
 from src.pydantic_models.agent_state import HistoryItem, StreamedSubmission
 from src.reddit_utils import get_comment_tree, get_current_user, list_inbox_comments, show_conversation
 from src.utils import confirm_yes_no, json_to_yaml, yaml_dump
@@ -118,8 +120,8 @@ system_intro = " ".join([
 ])
 
 
-def handle_event(env: AgentEnv, event_message: str):
-	system_prompt = "\n".join([
+def get_leading_system_prompt(env: AgentEnv) -> list[str]:
+	return [
 	    system_intro,
 	    "",
 	    f"You will be provided with:",
@@ -131,15 +133,67 @@ def handle_event(env: AgentEnv, event_message: str):
 	    "",
 	    "## Current status:",
 	    f"Your username is '{get_current_user(env.reddit).name}'.",
-	    "",
-	    "## Event message:",
-	    event_message,
-	    "",
-	    "## Available commands:",
-	] + get_command_list(env) + [
-	    "",
-	    "Now, respond with the command you want to execute.",
-	])
+	    f"You are active on the following subreddits: {', '.join(env.agent_config.active_on_subreddits)}",
+	]
+
+
+def save_result(env: AgentEnv, model_action: dict[str, Any], action_result: dict[str, Any]):
+	fmtlog.header(3, "Action result:")
+	fmtlog.code(yaml_dump(action_result))
+
+	append_to_history(env, HistoryItem(
+	    model_action=json.dumps(model_action, ensure_ascii=False),
+	    action_result=json.dumps(action_result, ensure_ascii=False),
+	))
+
+	env.save_state()
+
+
+@dataclass
+class PerformActionResult:
+	model_action: dict[str, Any]
+	action_result: dict[str, Any]
+
+
+def perform_action(env: AgentEnv) -> PerformActionResult | None:
+	if time_until_create_post_possible(env.reddit, env.agent_config) <= 0:
+		system_prompt = "\n".join(get_leading_system_prompt(env) + [
+		    "",
+		    "Your task is to create a new post in one of the subreddits you are active on.",
+		])
+		fmtlog.header(3, "System prompt:")
+		fmtlog.text(system_prompt)
+		submission = env.provider.generate_submission(system_prompt)
+		if submission is None:
+			fmtlog.text("Error: Could not get model action.")
+			return None
+		fmtlog.header(3, "Model generated submission")
+		fmtlog.code(yaml_dump(submission.model_dump()))
+		do_execute = not env.test_mode or confirm_yes_no("Execute the action?")
+		if do_execute:
+			subreddit = submission.subreddit.lower().strip()
+			if subreddit.startswith("r/"):
+				subreddit = subreddit[2:]
+			if not subreddit in [subreddit.lower() for subreddit in env.agent_config.active_on_subreddits]:
+				return PerformActionResult(model_action=submission.model_dump(), action_result={'error': f"You are not active on the subreddit: {subreddit}"})
+			env.reddit.subreddit(subreddit).submit(submission.title, selftext=submission.text)
+			return PerformActionResult(model_action=submission.model_dump(), action_result={'result': 'Post created'})
+		else:
+			return PerformActionResult(model_action=submission.model_dump(), action_result={'note': 'Skipped execution'})
+
+
+def handle_event(env: AgentEnv, event_message: str):
+	system_prompt = "\n".join(
+	    get_leading_system_prompt(env) + [
+	        "",
+	        "## Event message:",
+	        event_message,
+	        "",
+	        "## Available commands:",
+	    ] + get_command_list(env) + [
+	        "",
+	        "Now, respond with the command you want to execute.",
+	    ])
 
 	fmtlog.header(3, "System prompt:")
 	fmtlog.text(system_prompt)
@@ -163,15 +217,8 @@ def handle_event(env: AgentEnv, event_message: str):
 			action_result = {"error": f"Could not decode command: {e}"}
 	else:
 		action_result = {"note": "Skipped execution"}
-	fmtlog.header(3, "Action result:")
-	fmtlog.code(yaml_dump(action_result))
 
-	append_to_history(env, HistoryItem(
-	    model_action=json.dumps(model_action.model_dump(), ensure_ascii=False),
-	    action_result=json.dumps(action_result, ensure_ascii=False),
-	))
-
-	env.save_state()
+	save_result(env, model_action.model_dump(), action_result)
 
 
 def run_agent(env: AgentEnv):
@@ -190,6 +237,8 @@ def run_agent(env: AgentEnv):
 		fmtlog.code(json_to_yaml(history_item.action_result))
 
 	while True:
+
+		# Reactions
 		try:
 			event_message = get_new_event(env)
 			if event_message:
@@ -198,6 +247,22 @@ def run_agent(env: AgentEnv):
 				fmtlog.text("No new events.")
 		except Exception:
 			logger.exception("Error in wait_for_event")
+
+		if env.test_mode:
+			input("Press enter to continue...")
+		else:
+			print("Wait for 10 seconds before handling the next event.")
+			time.sleep(10)
+
+		# Actions
+		try:
+			perform_action_result = perform_action(env)
+			if perform_action_result:
+				save_result(env, perform_action_result.model_action, perform_action_result.action_result)
+			else:
+				fmtlog.text("No action performed.")
+		except Exception:
+			logger.exception("Error in perform_action")
 
 		if env.test_mode:
 			input("Press enter to continue...")
