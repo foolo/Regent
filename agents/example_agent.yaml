@@ -12,7 +12,8 @@ agent_instructions: >-
 active_on_subreddits:
   - test
   - sandboxtest
-minimum_time_between_posts_hours: 12
+minimum_time_between_posts_hours: 1
+time_between_scheduled_posts_hours: 24
 max_post_age_for_replying_hours: 24
 max_history_length: 3
 can_create_posts: true
