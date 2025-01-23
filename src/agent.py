@@ -115,7 +115,16 @@ def run_agent(env: AgentEnv):
 	stream_submissions_thread.start()
 	stream_submissions_to_state(env, wait_once=True)
 
-	system_intro = f"You are a Reddit AI agent. You use a set of commands to interact with Reddit users. There are commands for replying to comments, creating posts, and more to help you achieve your goals. For each action you take, you also need to provide a motivation behind the action, which can include any future steps you plan to take. This will help you keep track of your strategy and make sure you are working towards your goals. You will be provided with a history of your recent actions (up to {env.agent_config.max_history_length} actions), your motivations, and the responses of the actions. You will also be provided with a list of available commands to perform your actions. Before you decide on an action, you should take the last action of the history into account, to follow up on the motivation you provided for the last action."
+	system_intro = " ".join([
+	    "You are a Reddit AI agent.",
+	    "You use a set of commands to interact with Reddit users.",
+	    "There are commands for replying to comments, creating posts, and more to help you achieve your goals.",
+	    "For each action you take, you also need to provide a motivation behind the action, which can include any future steps you plan to take.",
+	    "This will help you keep track of your strategy and make sure you are working towards your goals.",
+	    f"You will be provided with a history of your recent actions (up to {env.agent_config.max_history_length} actions), your motivations, and the responses of the actions.",
+	    "You will also be provided with a list of available commands to perform your actions.",
+	    "Before you decide on an action, you should take the last action of the history into account, to follow up on the motivation you provided for the last action.",
+	])
 
 	fmtlog.header(3, "System message:")
 	fmtlog.text(system_intro)
