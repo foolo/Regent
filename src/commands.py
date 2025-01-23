@@ -154,7 +154,7 @@ class ReplyToContent(Command):
 
 	@classmethod
 	def available(cls, env: AgentEnv) -> bool:
-		return True
+		return env.agent_config.can_reply_to_content
 
 
 def time_until_create_post_possible(reddit: Reddit, agent_config: AgentConfig) -> int:
@@ -196,6 +196,8 @@ class CreatePost(Command):
 
 	@classmethod
 	def available(cls, env: AgentEnv) -> bool:
+		if not env.agent_config.can_create_posts:
+			return False
 		if env.test_mode:
 			return True
 		return time_until_create_post_possible(env.reddit, env.agent_config) <= 0
