@@ -1,6 +1,5 @@
 from typing import Any
 from openai import OpenAI
-from src.log_config import logger
 from src.providers.base_provider import Action, BaseProvider
 from src.pydantic_models.openai_config import OpenAIConfig
 
@@ -13,9 +12,6 @@ class OpenAIProvider(BaseProvider):
 	def get_action(self, system_prompt: str) -> Action | None:
 		messages: list[Any] = []
 		messages.append({"role": 'system', "content": system_prompt})
-
-		for message in messages:
-			logger.debug(f" -- {message['role']}: {message['content']}")
 
 		completion = self._client.beta.chat.completions.parse(
 		    model=self._model,
