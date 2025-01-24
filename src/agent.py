@@ -199,7 +199,7 @@ def handle_event(env: AgentEnv, event_message: str):
 		fmtlog.text("Error: Could not get model action.")
 		return
 
-	fmtlog.header(3, f"Model action: {model_action.command}")
+	fmtlog.header(3, f"Model action:")
 	fmtlog.code(yaml_dump(model_action.model_dump()))
 
 	do_execute = not env.test_mode or confirm_yes_no("Execute the action?")
