@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 from typing import Any
 from colorama import init as colorama_init
 from colorama import Fore, Style
-from src.log_config import logger
 
 
 class BaseLogger(ABC):
@@ -45,17 +44,6 @@ class ColoredTerminalLogger(BaseLogger):
 
 	def header(self, level: int, text: str):
 		print(Fore.GREEN + f"{'#' * level} {text}" + Style.RESET_ALL)
-
-
-class DebugLogger(BaseLogger):
-	def code(self, code: str):
-		logger.debug(code)
-
-	def text(self, text: str):
-		logger.debug(text)
-
-	def header(self, level: int, text: str):
-		logger.debug(f"{'#' * level} {text}")
 
 
 class FormattedLogger:
