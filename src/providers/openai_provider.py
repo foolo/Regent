@@ -2,6 +2,7 @@ from typing import Any
 from openai import OpenAI
 from src.providers.base_provider import Action, BaseProvider, Submission
 from src.pydantic_models.openai_config import OpenAIConfig
+from src.log_config import logger
 
 
 class OpenAIProvider(BaseProvider):
@@ -10,6 +11,7 @@ class OpenAIProvider(BaseProvider):
 		self.model = config.model_id
 
 	def get_action(self, system_prompt: str) -> Action | None:
+		logger.debug(f"System prompt: {system_prompt}")
 		messages: list[Any] = []
 		messages.append({"role": 'system', "content": system_prompt})
 
@@ -21,6 +23,7 @@ class OpenAIProvider(BaseProvider):
 		return completion.choices[0].message.parsed
 
 	def generate_submission(self, system_prompt: str) -> Submission | None:
+		logger.debug(f"System prompt: {system_prompt}")
 		messages: list[Any] = []
 		messages.append({"role": 'system', "content": system_prompt})
 

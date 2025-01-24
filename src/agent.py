@@ -157,12 +157,11 @@ class PerformActionResult:
 
 def perform_action(env: AgentEnv) -> PerformActionResult | None:
 	if env.agent_config.can_create_posts and seconds_since_last_post(env.reddit, env.agent_config) >= env.agent_config.time_between_scheduled_posts_hours * 3600:
-		system_prompt = "\n".join(get_leading_system_prompt(env) + [
-		    "",
-		    "Your task is to create a new post in one of the subreddits you are active on.",
-		])
-		fmtlog.header(3, "System prompt:")
-		fmtlog.text(system_prompt)
+		action_prompt = ["Your task is to create a new post in one of the subreddits you are active on."]
+		fmtlog.header(3, "Action prompt:")
+		fmtlog.text("\n".join(action_prompt))
+
+		system_prompt = "\n".join(get_leading_system_prompt(env) + [""] + action_prompt)
 		submission = env.provider.generate_submission(system_prompt)
 		if submission is None:
 			fmtlog.text("Error: Could not get model action.")
@@ -181,20 +180,19 @@ def perform_action(env: AgentEnv) -> PerformActionResult | None:
 
 
 def handle_event(env: AgentEnv, event_message: str):
-	system_prompt = "\n".join(
-	    get_leading_system_prompt(env) + [
-	        "",
-	        "## Event message:",
-	        event_message,
-	        "",
-	        "## Available commands:",
-	    ] + get_command_list(env) + [
-	        "",
-	        "Now, respond with the command you want to execute.",
-	    ])
+	event_prompt = [
+	    "## Event message:",
+	    event_message,
+	    "",
+	    "## Available commands:",
+	] + get_command_list(env) + [
+	    "",
+	    "Now, respond with the command you want to execute.",
+	]
+	fmtlog.header(3, "Event prompt:")
+	fmtlog.text("\n".join(event_prompt))
 
-	fmtlog.header(3, "System prompt:")
-	fmtlog.text(system_prompt)
+	system_prompt = "\n".join(get_leading_system_prompt(env) + [""] + event_prompt)
 
 	model_action = env.provider.get_action(system_prompt)
 	if model_action is None:
