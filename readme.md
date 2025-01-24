@@ -1,18 +1,17 @@
-# Regent - The Reddit AI Agent engine
+# Regent - Reddit AI Agent
 
 Regent is a tool for running your own AI agent on Reddit.
 
-## Prerequisites
+## Installation and setup
+
+### Install dependencies
 
 ```bash
 pip install praw
 pip install pyyaml
 pip install colorama
-
-pip install openai   #if using OpenAI model
+pip install openai
 ```
-
-## Usage
 
 ### Create a Reddit application
 
@@ -22,8 +21,8 @@ Select "web app" and set the redirect URI to `http://localhost:8080`
 
 After the application is created, take note of:
 
-- Client ID - the line just under "web app" in the upper left of the Reddit application
-- Client secret - the value to the right of "secret"
+- Client ID (the line just under "web app" in the upper left of the Reddit application)
+- Client secret (the value to the right of "secret")
 
 ### Create a Reddit configuration file
 
@@ -46,6 +45,8 @@ You then need to manually add the refresh token to `reddit_config.yaml`.
 
 Copy `agents/example_agent.yaml` to a new file, such as `agents/my_agent.yaml` and customize it as you like.
 See the comments in the example file for more information.
+
+## Usage
 
 ### Run the agent
 
