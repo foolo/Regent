@@ -57,7 +57,7 @@ def handle_submissions(env: AgentEnv):
 	subreddit = env.reddit.subreddit("+".join(env.agent_config.active_on_subreddits))
 	logger.info(f"Monitoring subreddit: {subreddit.display_name}")
 	for s in subreddit.stream.submissions():
-		if s.author == get_current_user(env.reddit):
+		if s.author == get_current_user(env.reddit).name:
 			logger.debug(f"Skipping own post: {s.id}, {s.title}")
 			continue
 		if not s.is_self:
