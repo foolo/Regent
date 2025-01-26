@@ -171,7 +171,6 @@ def get_cropped_tree(tree: list[CommentTreeNode], min_score_threshold: int | Non
 
 
 def get_comment_tree(submission: Submission, max_size: int) -> dict[str, Any]:
-	submission.comment_sort = 'best'
 	comment_tree = get_comment_tree_recursive(submission.comments)
 	tree_size = get_tree_size(None, comment_tree)
 	if tree_size >= max_size:
