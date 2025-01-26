@@ -70,5 +70,9 @@ def confirm_yes_no(prompt: str) -> bool:
 			print("Please enter 'y' or 'n'.")
 
 
+def confirm_enter():
+	input("Press enter to continue...")
+
+
 if __name__ == '__main__':
 	unittest.main()

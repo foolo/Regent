@@ -11,7 +11,7 @@ from praw.models import Submission  # type: ignore
 from src.commands import AgentEnv, Command, CommandDecodeError, seconds_since_last_post
 from src.pydantic_models.agent_state import HistoryItem, StreamedSubmission
 from src.reddit_utils import canonicalize_subreddit_name, get_comment_tree, get_current_user, list_inbox_comments, show_conversation
-from src.utils import confirm_yes_no, json_to_yaml, yaml_dump
+from src.utils import confirm_enter, confirm_yes_no, json_to_yaml, yaml_dump
 
 submission_queue: queue.Queue[Submission] = queue.Queue()
 
@@ -255,7 +255,7 @@ def run_agent(env: AgentEnv):
 			logger.exception("Error in wait_for_event")
 
 		if env.test_mode:
-			input("Press enter to continue...")
+			confirm_enter()
 		else:
 			print("Wait for 10 seconds before handling the next event.")
 			time.sleep(10)
@@ -271,7 +271,7 @@ def run_agent(env: AgentEnv):
 			logger.exception("Error in perform_action")
 
 		if env.test_mode:
-			input("Press enter to continue...")
+			confirm_enter()
 		else:
 			print("Wait for 10 seconds before handling the next event.")
 			time.sleep(10)
