@@ -87,7 +87,7 @@ def append_to_history(env: AgentEnv, history_item: HistoryItem):
 		env.state.history = env.state.history[-env.agent_config.max_history_length:]
 
 
-def get_new_event(env: AgentEnv) -> str | None:
+def handle_new_event(env: AgentEnv):
 	fmtlog.header(3, "Waiting for event...")
 	comments = list_inbox_comments(env.reddit)
 	fmtlog.text(f"Number of messages in inbox: {len(comments)}")
@@ -98,17 +98,13 @@ def get_new_event(env: AgentEnv) -> str | None:
 		conversation = show_conversation(env.reddit, comment.id)
 		json_msg = json.dumps(conversation, ensure_ascii=False, indent=2)
 
-		if env.test_mode:
-			fmtlog.header(3, "New comment:")
-			fmtlog.code(json_msg)
+		event_message = f"You have a new comment in your inbox. Here is the conversation:\n\n```json\n{json_msg}\n```"
+		handle_event(env, event_message)
 
-			if confirm_yes_no("Mark comment as read?"):
-				comment.mark_read()
-		else:
+		if not env.test_mode or confirm_yes_no("Mark comment as read?"):
 			comment.mark_read()
 
-		return f"You have a new comment in your inbox. Here is the conversation:\n\n```json\n{json_msg}\n```"
-	if len(env.state.streamed_submissions) > 0:
+	elif len(env.state.streamed_submissions) > 0:
 		latest_submission = env.reddit.submission(env.state.streamed_submissions[-1].id)
 		del env.state.streamed_submissions[-1]
 		if not latest_submission.author:
@@ -117,8 +113,12 @@ def get_new_event(env: AgentEnv) -> str | None:
 		max_comment_tree_size = 20
 		comment_tree = get_comment_tree(latest_submission, max_comment_tree_size)
 		json_msg = json.dumps(comment_tree, ensure_ascii=False, indent=2)
-		return f"You have a new post in the monitored subreddits. Here is the conversation tree, with the up to {max_comment_tree_size} highest rated comments:\n\n```json\n{json_msg}\n```"
-	return None
+		event_message = f"You have a new post in the monitored subreddits. Here is the conversation tree, with the up to {max_comment_tree_size} highest rated comments:\n\n```json\n{json_msg}\n```"
+		handle_event(env, event_message)
+
+	else:
+		fmtlog.text("No new events.")
+		return
 
 
 system_intro = " ".join([
@@ -249,11 +249,7 @@ def run_agent(env: AgentEnv):
 
 		# Reactions
 		try:
-			event_message = get_new_event(env)
-			if event_message:
-				handle_event(env, event_message)
-			else:
-				fmtlog.text("No new events.")
+			handle_new_event(env)
 		except Exception:
 			logger.exception("Error in wait_for_event")
 
