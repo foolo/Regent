@@ -95,11 +95,18 @@ def get_new_event(env: AgentEnv) -> str | None:
 	stream_submissions_to_state(env)
 	if len(comments) > 0:
 		comment = comments[0]
-		mark_as_read = not env.test_mode or confirm_yes_no("Mark comment as read?")
-		if mark_as_read:
-			comment.mark_read()
 		conversation = show_conversation(env.reddit, comment.id)
 		json_msg = json.dumps(conversation, ensure_ascii=False, indent=2)
+
+		if env.test_mode:
+			fmtlog.header(3, "New comment:")
+			fmtlog.code(json_msg)
+
+			if confirm_yes_no("Mark comment as read?"):
+				comment.mark_read()
+		else:
+			comment.mark_read()
+
 		return f"You have a new comment in your inbox. Here is the conversation:\n\n```json\n{json_msg}\n```"
 	if len(env.state.streamed_submissions) > 0:
 		latest_submission = env.reddit.submission(env.state.streamed_submissions[-1].id)
