@@ -23,7 +23,7 @@ def load_reddit_config():
 		    f"File {REDDIT_CONFIG_FILENAME} not found. Create it by copying {REDDIT_CONFIG_FILENAME}.example to {REDDIT_CONFIG_FILENAME} and filling in the values.")
 	config = RedditConfig(**config_obj)
 	if not config.user_agent or config.user_agent == "":
-		config.user_agent = f"RedditAiAgent"
+		config.user_agent = f"Regent"
 	if not config.refresh_token or config.refresh_token == "":
 		raise LoadConfigException(f"No Reddit refresh token found in {REDDIT_CONFIG_FILENAME}. Run 'python reddit_auth.py' to generate one.")
 	return config
