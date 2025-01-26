@@ -172,6 +172,8 @@ def perform_action(env: AgentEnv) -> PerformActionResult | None:
 		fmtlog.text("\n".join(action_prompt))
 
 		system_prompt = "\n".join(get_leading_system_prompt(env) + [""] + action_prompt)
+
+		confirm_enter()
 		submission = env.provider.generate_submission(system_prompt)
 		if submission is None:
 			fmtlog.text("Error: Could not get model action.")
@@ -204,6 +206,7 @@ def handle_event(env: AgentEnv, event_message: str):
 
 	system_prompt = "\n".join(get_leading_system_prompt(env) + [""] + event_prompt)
 
+	confirm_enter()
 	model_action = env.provider.get_action(system_prompt)
 	if model_action is None:
 		fmtlog.text("Error: Could not get model action.")
