@@ -111,6 +111,9 @@ def get_new_event(env: AgentEnv) -> str | None:
 	if len(env.state.streamed_submissions) > 0:
 		latest_submission = env.reddit.submission(env.state.streamed_submissions[-1].id)
 		del env.state.streamed_submissions[-1]
+		if not latest_submission.author:
+			logger.info(f"Skipping post with unknown author: {latest_submission.id}, {latest_submission.title}")
+			return None
 		max_comment_tree_size = 20
 		comment_tree = get_comment_tree(latest_submission, max_comment_tree_size)
 		json_msg = json.dumps(comment_tree, ensure_ascii=False, indent=2)
