@@ -1,11 +1,10 @@
 from datetime import datetime, timezone
-from typing import List
+from typing import List, Optional
 from pydantic import BaseModel, Field
 
 
 class HistoryItem(BaseModel):
-	model_action: str = Field(..., description='The action taken by the model')
-	action_result: str = Field(..., description='The result of the action')
+	notes_and_strategy: Optional[str] = Field(description='The action taken by the model', default=None)
 
 
 class StreamedSubmission(BaseModel):
