@@ -131,6 +131,14 @@ system_intro = " ".join([
 
 
 def get_leading_system_prompt(env: AgentEnv) -> list[str]:
+
+	history: list[str] = []
+	if len(env.state.history) > 0:
+		for i, history_item in enumerate(env.state.history):
+			history.append(f"History item {i}: {history_item.notes_and_strategy}")
+	else:
+		history.append("(No history yet)")
+
 	return [
 	    system_intro,
 	    "",
@@ -140,6 +148,9 @@ def get_leading_system_prompt(env: AgentEnv) -> list[str]:
 	    "",
 	    "## Agent instructions:",
 	    env.agent_config.agent_instructions,
+	    "",
+	    "## History (your notes on previous actions):",
+	    *history,
 	    "",
 	    "## Current status:",
 	    f"Your username is '{get_current_user(env.reddit).name}'.",
