@@ -11,7 +11,7 @@ from praw.models import Submission  # type: ignore
 from src.commands import AgentEnv, Command, CommandDecodeError, seconds_since_last_post
 from src.pydantic_models.agent_state import HistoryItem, StreamedSubmission
 from src.reddit_utils import canonicalize_subreddit_name, get_comment_tree, get_current_user, list_inbox_comments, show_conversation
-from src.utils import confirm_enter, confirm_yes_no, json_to_yaml, yaml_dump
+from src.utils import confirm_enter, confirm_yes_no, yaml_dump
 
 submission_queue: queue.Queue[Submission] = queue.Queue()
 
@@ -147,27 +147,28 @@ def get_leading_system_prompt(env: AgentEnv) -> list[str]:
 	]
 
 
-def save_result(env: AgentEnv, model_action: dict[str, Any], action_result: dict[str, Any]):
-	fmtlog.header(3, "Action result:")
-	fmtlog.code(yaml_dump(action_result))
-
-	append_to_history(env, HistoryItem(
-	    model_action=json.dumps(model_action, ensure_ascii=False),
-	    action_result=json.dumps(action_result, ensure_ascii=False),
-	))
-
+def save_result(env: AgentEnv, history_item: HistoryItem):
+	append_to_history(env, history_item)
 	env.save_state()
 
 
 @dataclass
 class PerformActionResult:
-	model_action: dict[str, Any]
+	notes_and_strategy: str
 	action_result: dict[str, Any]
+
+
+NOTES_INSTRUCTIONS = """You should also provide notes and strategy for the action.
+It should include a summary of the event and your response to it. For example, "I replied to a comment about X with Y, with the goal of Z."
+This will help you keep track of your strategy and make sure you are working towards your goals."""
 
 
 def perform_action(env: AgentEnv) -> PerformActionResult | None:
 	if env.agent_config.can_create_posts and seconds_since_last_post(env.reddit, env.agent_config) >= env.agent_config.time_between_scheduled_posts_hours * 3600:
-		action_prompt = ["Your task is to create a new post in one of the subreddits you are active on."]
+		action_prompt = [
+		    "Your task is to create a new post in one of the subreddits you are active on.",
+		    NOTES_INSTRUCTIONS,
+		]
 		fmtlog.header(3, "Action prompt:")
 		fmtlog.text("\n".join(action_prompt))
 
@@ -184,11 +185,11 @@ def perform_action(env: AgentEnv) -> PerformActionResult | None:
 		if do_execute:
 			subreddit = canonicalize_subreddit_name(submission.subreddit)
 			if not subreddit in [subreddit.lower() for subreddit in env.agent_config.active_on_subreddits]:
-				return PerformActionResult(model_action=submission.model_dump(), action_result={'error': f"You are not active on the subreddit: {subreddit}"})
+				return PerformActionResult(notes_and_strategy=submission.notes_and_strategy, action_result={'error': f"You are not active on the subreddit: {subreddit}"})
 			env.reddit.subreddit(subreddit).submit(submission.title, selftext=submission.text)
-			return PerformActionResult(model_action=submission.model_dump(), action_result={'result': 'Post created'})
+			return PerformActionResult(notes_and_strategy=submission.notes_and_strategy, action_result={'result': 'Post created'})
 		else:
-			return PerformActionResult(model_action=submission.model_dump(), action_result={'note': 'Skipped execution'})
+			return PerformActionResult(notes_and_strategy=submission.notes_and_strategy, action_result={'note': 'Skipped execution'})
 
 
 def handle_event(env: AgentEnv, event_message: str):
@@ -200,6 +201,7 @@ def handle_event(env: AgentEnv, event_message: str):
 	] + get_command_list(env) + [
 	    "",
 	    "Now, respond with the command you want to execute.",
+	    NOTES_INSTRUCTIONS,
 	]
 	fmtlog.header(3, "Event prompt:")
 	fmtlog.text("\n".join(event_prompt))
@@ -222,12 +224,18 @@ def handle_event(env: AgentEnv, event_message: str):
 		try:
 			command = Command.decode(model_action)
 			action_result = command.execute(env)
+			fmtlog.header(3, "Action result:")
+			fmtlog.code(yaml_dump(action_result))
 		except CommandDecodeError as e:
 			action_result = {"error": f"Could not decode command: {e}"}
+			logger.error(f"Could not decode command: {e}")
+			return
 	else:
 		action_result = {"note": "Skipped execution"}
+		logger.info("Skipped execution")
+		return
 
-	save_result(env, model_action.model_dump(), action_result)
+	save_result(env, HistoryItem(notes_and_strategy=model_action.notes_and_strategy))
 
 
 def run_agent(env: AgentEnv):
@@ -239,11 +247,9 @@ def run_agent(env: AgentEnv):
 	fmtlog.header(3, "History:")
 	if len(env.state.history) == 0:
 		fmtlog.text("No history yet.")
-	for history_item in env.state.history:
-		fmtlog.header(4, f"Action:")
-		fmtlog.code(json_to_yaml(history_item.model_action))
-		fmtlog.header(4, "Result:")
-		fmtlog.code(json_to_yaml(history_item.action_result))
+	for i, history_item in enumerate(env.state.history):
+		fmtlog.header(4, f"History item {i}")
+		fmtlog.code(history_item.notes_and_strategy)
 
 	while True:
 
@@ -262,8 +268,11 @@ def run_agent(env: AgentEnv):
 		# Actions
 		try:
 			perform_action_result = perform_action(env)
+
 			if perform_action_result:
-				save_result(env, perform_action_result.model_action, perform_action_result.action_result)
+				fmtlog.header(3, "Action result:")
+				fmtlog.code(yaml_dump(perform_action_result.action_result))
+				save_result(env, HistoryItem(notes_and_strategy=perform_action_result.notes_and_strategy))
 			else:
 				fmtlog.text("No action performed.")
 		except Exception:

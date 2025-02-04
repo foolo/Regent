@@ -6,13 +6,14 @@ from pydantic import BaseModel
 class Action(BaseModel):
 	command: str
 	parameters: list[str]
-	motivation_behind_the_action: str
+	notes_and_strategy: str
 
 
 class Submission(BaseModel):
 	subreddit: str
 	title: str
 	text: str
+	notes_and_strategy: str
 
 
 class BaseProvider(ABC):
