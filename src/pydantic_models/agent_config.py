@@ -9,6 +9,6 @@ class AgentConfig(BaseModel):
 	max_post_age_for_replying_hours: int = Field(description='The maximum age of a post in hours that the agent will reply to.', default=24)
 	minimum_time_between_posts_hours: float = Field(description="The minimum time since the agent's last posts in hours before it can make another post.", default=1)
 	time_between_scheduled_posts_hours: int = Field(description='Create a post every this many hours, if post creation is enabled.', default=24)
-	max_history_length: int = Field(description='Keep at most this many history items and remove the oldest items.', default=3)
+	max_history_length: int = Field(description='Keep at most this many history items and remove the oldest items.', default=10)
 	can_create_posts: bool = Field(description='Whether the agent is allowed to create posts.', default=True)
 	can_reply_to_content: bool = Field(description='Whether the agent is allowed to reply to content.', default=True)
