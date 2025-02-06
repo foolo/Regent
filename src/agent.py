@@ -108,12 +108,12 @@ def handle_new_event(env: AgentEnv):
 		latest_submission = env.reddit.submission(env.state.streamed_submissions[-1].id)
 		if not latest_submission.author:
 			logger.info(f"Skipping post with unknown author: {latest_submission.id}, {latest_submission.title}")
-			return None
-		max_comment_tree_size = 20
-		comment_tree = get_comment_tree(latest_submission, max_comment_tree_size)
-		json_msg = json.dumps(comment_tree, ensure_ascii=False, indent=2)
-		event_message = f"You have a new post in the monitored subreddits. Here is the conversation tree, with the up to {max_comment_tree_size} highest rated comments:\n\n```json\n{json_msg}\n```"
-		handle_event(env, event_message)
+		else:
+			max_comment_tree_size = 20
+			comment_tree = get_comment_tree(latest_submission, max_comment_tree_size)
+			json_msg = json.dumps(comment_tree, ensure_ascii=False, indent=2)
+			event_message = f"You have a new post in the monitored subreddits. Here is the conversation tree, with the up to {max_comment_tree_size} highest rated comments:\n\n```json\n{json_msg}\n```"
+			handle_event(env, event_message)
 		if not env.test_mode or confirm_yes_no("Remove post from stream?"):
 			del env.state.streamed_submissions[-1]
 	else:
