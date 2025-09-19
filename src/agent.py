@@ -236,7 +236,7 @@ def handle_new_post(env: AgentEnv, event_message: str):
 		action_result = command.execute(env)
 		fmtlog.header(3, "Action result:")
 		fmtlog.code(yaml_dump(action_result))
-		save_result(env, HistoryItem(notes_and_strategy=data.notes_and_strategy))
+		save_result(env, HistoryItem(notes_and_strategy=reply.notes_and_strategy))
 	else:
 		action_result = {"note": "Skipped execution"}
 		logger.info("Skipped execution")
@@ -269,7 +269,7 @@ def handle_inbox_message(env: AgentEnv, event_message: str, comment_id: str):
 		action_result = command.execute(env)
 		fmtlog.header(3, "Action result:")
 		fmtlog.code(yaml_dump(action_result))
-		save_result(env, HistoryItem(notes_and_strategy=data.notes_and_strategy))
+		save_result(env, HistoryItem(notes_and_strategy=reply.notes_and_strategy))
 	else:
 		action_result = {"note": "Skipped execution"}
 		logger.info("Skipped execution")

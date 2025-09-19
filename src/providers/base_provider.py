@@ -6,20 +6,20 @@ from pydantic import BaseModel
 class PostReplyData(BaseModel):
 	content_id: str
 	reply_text: str
-	notes_and_strategy: str
 
 
 class PostReply(BaseModel):
 	data: PostReplyData | None = None
+	notes_and_strategy: str
 
 
 class InboxReplyData(BaseModel):
 	reply_text: str
-	notes_and_strategy: str
 
 
 class InboxReply(BaseModel):
 	data: InboxReplyData | None = None
+	notes_and_strategy: str
 
 
 class Submission(BaseModel):
