@@ -1,71 +1,18 @@
 from dataclasses import dataclass
 import time
-from typing import Any, Type
 from src.agent_env import AgentEnv
 from src.log_config import logger
 from praw import Reddit  # type: ignore
 from praw.exceptions import ClientException  # type: ignore
-from abc import abstractmethod
-from src.providers.base_provider import Action
 from src.pydantic_models.agent_config import AgentConfig
-from src.reddit_utils import COMMENT_PREFIX, SUBMISSION_PREFIX, canonicalize_subreddit_name, get_current_user, get_latest_submission
+from src.reddit_utils import COMMENT_PREFIX, SUBMISSION_PREFIX, get_current_user, get_latest_submission
 from src.utils import seconds_to_hms
 
 
 @dataclass
-class CommandInfo:
-	command: Type['Command']
-	parameter_names: list[str]
-	description: str
-
-
-class CommandDecodeError(Exception):
-	pass
-
-
-class Command:
-	registry: dict[str, CommandInfo] = {}
-
-	@classmethod
-	def register(cls, name: str, parameter_names: list[str], description: str):
-		def decorator(command_cls: Type['Command']):
-			cls.registry[name] = CommandInfo(command=command_cls, parameter_names=parameter_names, description=description)
-			return command_cls
-
-		return decorator
-
-	@classmethod
-	def decode(cls, action: Action) -> 'Command':
-		if action.command not in cls.registry:
-			raise CommandDecodeError(f"Unknown command: {action.command}")
-
-		command_cls = cls.registry[action.command]
-		return command_cls.command.instance_decode(action.parameters)
-
-	@classmethod
-	def instance_decode(cls, args: list[str]) -> 'Command':
-		raise NotImplementedError("Decode method must be implemented by subclasses")
-
-	@abstractmethod
-	def execute(self, env: AgentEnv) -> dict[str, Any]:
-		pass
-
-	@classmethod
-	def available(cls, env: AgentEnv) -> bool:
-		raise NotImplementedError("Available method must be implemented by subclasses")
-
-
-@Command.register("reply_to_content", ['CONTENT_ID', 'REPLY_TEXT'], "Reply to a post or comment with the given ID.")
-@dataclass
-class ReplyToContent(Command):
+class ReplyToContent:
 	content_id: str
 	reply_text: str
-
-	@classmethod
-	def instance_decode(cls, args: list[str]) -> 'ReplyToContent':
-		if len(args) != 2:
-			raise CommandDecodeError(f"reply_to_content requires 2 arguments, got {len(args)}")
-		return cls(content_id=args[0], reply_text=args[1])
 
 	def execute(self, env: AgentEnv):
 		if self.content_id.startswith(SUBMISSION_PREFIX):
@@ -111,18 +58,11 @@ def seconds_since_last_post(reddit: Reddit, agent_config: AgentConfig) -> int:
 	return max(current_utc - int(latest_submission.created_utc), 0)
 
 
-@Command.register("create_post", ['SUBREDDIT', 'POST_TITLE', 'POST_TEXT'], "Create a post in the given subreddit with the given title and text")
 @dataclass
-class CreatePost(Command):
+class CreatePost:
 	subreddit: str
 	post_title: str
 	post_text: str
-
-	@classmethod
-	def instance_decode(cls, args: list[str]) -> 'CreatePost':
-		if len(args) != 3:
-			raise CommandDecodeError(f"create_post requires 3 arguments, got {len(args)}")
-		return cls(subreddit=canonicalize_subreddit_name(args[0]), post_title=args[1], post_text=args[2])
 
 	def execute(self, env: AgentEnv):
 		try:
@@ -145,20 +85,3 @@ class CreatePost(Command):
 		if env.test_mode:
 			return True
 		return seconds_since_last_post(env.reddit, env.agent_config) >= env.agent_config.minimum_time_between_posts_hours * 3600
-
-
-@Command.register("ignore", [], "Ignore the current event")
-@dataclass
-class Ignore(Command):
-	@classmethod
-	def instance_decode(cls, args: list[str]) -> 'Ignore':
-		if len(args) != 0:
-			raise CommandDecodeError(f"ignore does not take any arguments, got {len(args)}")
-		return cls()
-
-	def execute(self, env: AgentEnv):
-		return {'result': 'Event ignored'}
-
-	@classmethod
-	def available(cls, env: AgentEnv) -> bool:
-		return True

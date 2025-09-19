@@ -3,10 +3,23 @@ from abc import ABC, abstractmethod
 from pydantic import BaseModel
 
 
-class Action(BaseModel):
-	command: str
-	parameters: list[str]
+class PostReplyData(BaseModel):
+	content_id: str
+	reply_text: str
 	notes_and_strategy: str
+
+
+class PostReply(BaseModel):
+	data: PostReplyData | None = None
+
+
+class InboxReplyData(BaseModel):
+	reply_text: str
+	notes_and_strategy: str
+
+
+class InboxReply(BaseModel):
+	data: InboxReplyData | None = None
 
 
 class Submission(BaseModel):
@@ -18,7 +31,11 @@ class Submission(BaseModel):
 
 class BaseProvider(ABC):
 	@abstractmethod
-	def get_action(self, system_prompt: str) -> Action | None:
+	def reply_to_post(self, system_prompt: str) -> PostReply | None:
+		pass
+
+	@abstractmethod
+	def reply_to_inbox(self, system_prompt: str) -> InboxReply | None:
 		pass
 
 	@abstractmethod

@@ -8,9 +8,9 @@ from typing import Any
 from src.log_config import logger
 from src.formatted_logger import fmtlog
 from praw.models import Submission  # type: ignore
-from src.commands import AgentEnv, Command, CommandDecodeError, seconds_since_last_post
+from src.commands import AgentEnv, ReplyToContent, seconds_since_last_post
 from src.pydantic_models.agent_state import HistoryItem, StreamedSubmission
-from src.reddit_utils import canonicalize_subreddit_name, get_comment_tree, get_current_user, list_inbox_comments, show_conversation
+from src.reddit_utils import COMMENT_PREFIX, canonicalize_subreddit_name, get_comment_tree, get_current_user, list_inbox_comments, show_conversation
 from src.utils import confirm_enter, confirm_yes_no, yaml_dump
 
 submission_queue: queue.Queue[Submission] = queue.Queue()
@@ -72,15 +72,6 @@ def handle_submissions(env: AgentEnv):
 			submission_queue.put(s)
 
 
-def get_command_list(env: AgentEnv) -> list[str]:
-	stream_submissions_to_state(env)
-	commands: list[str] = []
-	for command_name, command_info in Command.registry.items():
-		if command_info.command.available(env):
-			commands.append(f"{command_name} {' '.join(command_info.parameter_names)}  # {command_info.description}")
-	return commands
-
-
 def append_to_history(env: AgentEnv, history_item: HistoryItem):
 	env.state.history.append(history_item)
 	if len(env.state.history) > env.agent_config.max_history_length:
@@ -99,12 +90,12 @@ def handle_new_event(env: AgentEnv):
 		json_msg = json.dumps(conversation, ensure_ascii=False, indent=2)
 
 		event_message = f"You have a new comment in your inbox. Here is the conversation:\n\n```json\n{json_msg}\n```"
-		handle_event(env, event_message)
+		handle_inbox_message(env, event_message, COMMENT_PREFIX + comment.id)
 
 		if not env.test_mode or confirm_yes_no("Mark comment as read?"):
 			comment.mark_read()
 
-	elif len(env.state.streamed_submissions) > 0:
+	if len(env.state.streamed_submissions) > 0:
 		latest_submission = env.reddit.submission(env.state.streamed_submissions[-1].id)
 		if not latest_submission.author:
 			logger.info(f"Skipping post with unknown author: {latest_submission.id}, {latest_submission.title}")
@@ -113,7 +104,7 @@ def handle_new_event(env: AgentEnv):
 			comment_tree = get_comment_tree(latest_submission, max_comment_tree_size)
 			json_msg = json.dumps(comment_tree, ensure_ascii=False, indent=2)
 			event_message = f"You have a new post in the monitored subreddits. Here is the conversation tree, with the up to {max_comment_tree_size} highest rated comments:\n\n```json\n{json_msg}\n```"
-			handle_event(env, event_message)
+			handle_new_post(env, event_message)
 		if not env.test_mode or confirm_yes_no("Remove post from stream?"):
 			del env.state.streamed_submissions[-1]
 	else:
@@ -205,52 +196,84 @@ def perform_action(env: AgentEnv) -> PerformActionResult | None:
 			return PerformActionResult(notes_and_strategy=submission.notes_and_strategy, action_result={'note': 'Skipped execution'})
 
 
-def handle_event(env: AgentEnv, event_message: str):
+def get_system_prompt_for_event(env: AgentEnv, event_message: str) -> str:
 	event_prompt = [
 	    "## Event message:",
 	    event_message,
 	    "",
-	    "## Available commands:",
-	] + get_command_list(env) + [
-	    "",
-	    "Now, respond with the command you want to execute.",
 	    NOTES_INSTRUCTIONS,
 	]
 	fmtlog.header(3, "Event prompt:")
 	fmtlog.text("\n".join(event_prompt))
 
 	system_prompt = "\n".join(get_leading_system_prompt(env) + [""] + event_prompt)
+	return system_prompt
+
+
+def handle_new_post(env: AgentEnv, event_message: str):
+	system_prompt = get_system_prompt_for_event(env, event_message)
 
 	if env.test_mode:
 		confirm_enter()
 		print("Generating a model action...")
-	model_action = env.provider.get_action(system_prompt)
-	if model_action is None:
-		fmtlog.text("Error: Could not get model action.")
+	reply = env.provider.reply_to_post(system_prompt)
+	if reply is None:
+		fmtlog.text("Error: Could not get reply.")
 		return
 
 	fmtlog.header(3, f"Model action:")
-	fmtlog.code(yaml_dump(model_action.model_dump()))
+	fmtlog.code(yaml_dump(reply.model_dump()))
 
 	do_execute = not env.test_mode or confirm_yes_no("Execute the action?")
 
-	stream_submissions_to_state(env)
 	if do_execute:
-		try:
-			command = Command.decode(model_action)
-			action_result = command.execute(env)
-			fmtlog.header(3, "Action result:")
-			fmtlog.code(yaml_dump(action_result))
-		except CommandDecodeError as e:
-			action_result = {"error": f"Could not decode command: {e}"}
-			logger.error(f"Could not decode command: {e}")
+		if not reply.data:
+			action_result = {"note": "No action taken"}
+			logger.info("No action taken")
 			return
+		data = reply.data
+		command = ReplyToContent(content_id=data.content_id, reply_text=data.reply_text)
+		action_result = command.execute(env)
+		fmtlog.header(3, "Action result:")
+		fmtlog.code(yaml_dump(action_result))
+		save_result(env, HistoryItem(notes_and_strategy=data.notes_and_strategy))
 	else:
 		action_result = {"note": "Skipped execution"}
 		logger.info("Skipped execution")
 		return
 
-	save_result(env, HistoryItem(notes_and_strategy=model_action.notes_and_strategy))
+
+def handle_inbox_message(env: AgentEnv, event_message: str, comment_id: str):
+	system_prompt = get_system_prompt_for_event(env, event_message)
+
+	if env.test_mode:
+		confirm_enter()
+		print("Generating a model action...")
+	reply = env.provider.reply_to_inbox(system_prompt)
+	if reply is None:
+		fmtlog.text("Error: Could not get reply.")
+		return
+
+	fmtlog.header(3, f"Model action:")
+	fmtlog.code(yaml_dump(reply.model_dump()))
+
+	do_execute = not env.test_mode or confirm_yes_no("Execute the action?")
+
+	if do_execute:
+		if not reply.data:
+			action_result = {"note": "No action taken"}
+			logger.info("No action taken")
+			return
+		data = reply.data
+		command = ReplyToContent(content_id=comment_id, reply_text=data.reply_text)
+		action_result = command.execute(env)
+		fmtlog.header(3, "Action result:")
+		fmtlog.code(yaml_dump(action_result))
+		save_result(env, HistoryItem(notes_and_strategy=data.notes_and_strategy))
+	else:
+		action_result = {"note": "Skipped execution"}
+		logger.info("Skipped execution")
+		return
 
 
 def run_agent(env: AgentEnv):
