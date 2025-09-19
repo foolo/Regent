@@ -6,11 +6,11 @@ import threading
 import time
 from typing import Any
 from src.log_config import logger
-from src.formatted_logger import fmtlog
+from src.formatted_logger import LogLevel, fmtlog
 from praw.models import Submission  # type: ignore
 from src.commands import AgentEnv, ReplyToContent, seconds_since_last_post
 from src.pydantic_models.agent_state import HistoryItem, StreamedSubmission
-from src.reddit_utils import COMMENT_PREFIX, canonicalize_subreddit_name, get_comment_tree, get_current_user, list_inbox_comments, show_conversation
+from src.reddit_utils import COMMENT_PREFIX, canonicalize_subreddit_name, get_author_name, get_comment_tree, get_current_user, list_inbox_comments, show_conversation
 from src.utils import confirm_enter, confirm_yes_no, yaml_dump
 
 submission_queue: queue.Queue[Submission] = queue.Queue()
@@ -89,6 +89,11 @@ def handle_new_event(env: AgentEnv):
 		conversation = show_conversation(env.reddit, comment.id)
 		json_msg = json.dumps(conversation, ensure_ascii=False, indent=2)
 
+		fmtlog.header(3, "New inbox comment event:")
+		fmtlog.text(f"From: {get_author_name(comment)}")
+		fmtlog.text(f"Comment: {comment.body}")
+		fmtlog.text(f"Link: https://reddit.com{comment.context}")
+
 		event_message = f"You have a new comment in your inbox. Here is the conversation:\n\n```json\n{json_msg}\n```"
 		handle_inbox_message(env, event_message, COMMENT_PREFIX + comment.id)
 
@@ -103,6 +108,13 @@ def handle_new_event(env: AgentEnv):
 			max_comment_tree_size = 20
 			comment_tree = get_comment_tree(latest_submission, max_comment_tree_size)
 			json_msg = json.dumps(comment_tree, ensure_ascii=False, indent=2)
+
+			fmtlog.header(3, "New post event:")
+			fmtlog.text(f"Title: {latest_submission.title}")
+			fmtlog.text(f"URL: {latest_submission.url}")
+			fmtlog.text(f"Author: {get_author_name(latest_submission)}")
+			fmtlog.text(f"Text: {latest_submission.selftext}")
+
 			event_message = f"You have a new post in the monitored subreddits. Here is the conversation tree, with the up to {max_comment_tree_size} highest rated comments:\n\n```json\n{json_msg}\n```"
 			handle_new_post(env, event_message)
 		if not env.test_mode or confirm_yes_no("Remove post from stream?"):
@@ -203,8 +215,8 @@ def get_system_prompt_for_event(env: AgentEnv, event_message: str) -> str:
 	    "",
 	    NOTES_INSTRUCTIONS,
 	]
-	fmtlog.header(3, "Event prompt:")
-	fmtlog.text("\n".join(event_prompt))
+	fmtlog.header(3, "Event prompt:", LogLevel.DEBUG)
+	fmtlog.text("\n".join(event_prompt), LogLevel.DEBUG)
 
 	system_prompt = "\n".join(get_leading_system_prompt(env) + [""] + event_prompt)
 	return system_prompt
