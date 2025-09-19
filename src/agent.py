@@ -116,7 +116,8 @@ def handle_new_event(env: AgentEnv):
 			fmtlog.text(f"Text: {latest_submission.selftext}")
 
 			event_message = f"You have a new post in the monitored subreddits. Here is the conversation tree, with the up to {max_comment_tree_size} highest rated comments:\n\n```json\n{json_msg}\n```"
-			handle_new_post(env, event_message)
+			system_prompt = get_system_prompt_for_event(env, event_message)
+			handle_new_post(env, system_prompt)
 		if not env.test_mode or confirm_yes_no("Remove post from stream?"):
 			del env.state.streamed_submissions[-1]
 	else:
@@ -234,9 +235,7 @@ def reply_to_content(env: AgentEnv, content_id: str, reply_text: str, notes_and_
 		logger.info("Skipped execution")
 
 
-def handle_new_post(env: AgentEnv, event_message: str):
-	system_prompt = get_system_prompt_for_event(env, event_message)
-
+def handle_new_post(env: AgentEnv, system_prompt: str):
 	if env.test_mode:
 		confirm_enter()
 		print("Generating a model action...")
@@ -255,9 +254,7 @@ def handle_new_post(env: AgentEnv, event_message: str):
 	reply_to_content(env, reply.data.content_id, reply.data.reply_text, reply.notes_and_strategy)
 
 
-def handle_inbox_message(env: AgentEnv, event_message: str, comment_id: str):
-	system_prompt = get_system_prompt_for_event(env, event_message)
-
+def handle_inbox_message(env: AgentEnv, system_prompt: str, comment_id: str):
 	if env.test_mode:
 		confirm_enter()
 		print("Generating a model action...")
