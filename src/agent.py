@@ -240,7 +240,6 @@ def handle_new_post(env: AgentEnv, event_message: str):
 
 	if do_execute:
 		if not reply.data:
-			action_result = {"note": "No action taken"}
 			logger.info("No action taken")
 			return
 		data = reply.data
@@ -250,9 +249,7 @@ def handle_new_post(env: AgentEnv, event_message: str):
 		fmtlog.code(yaml_dump(action_result))
 		save_result(env, HistoryItem(notes_and_strategy=reply.notes_and_strategy))
 	else:
-		action_result = {"note": "Skipped execution"}
 		logger.info("Skipped execution")
-		return
 
 
 def handle_inbox_message(env: AgentEnv, event_message: str, comment_id: str):
@@ -273,7 +270,6 @@ def handle_inbox_message(env: AgentEnv, event_message: str, comment_id: str):
 
 	if do_execute:
 		if not reply.data:
-			action_result = {"note": "No action taken"}
 			logger.info("No action taken")
 			return
 		data = reply.data
@@ -283,9 +279,7 @@ def handle_inbox_message(env: AgentEnv, event_message: str, comment_id: str):
 		fmtlog.code(yaml_dump(action_result))
 		save_result(env, HistoryItem(notes_and_strategy=reply.notes_and_strategy))
 	else:
-		action_result = {"note": "Skipped execution"}
 		logger.info("Skipped execution")
-		return
 
 
 def run_agent(env: AgentEnv):
