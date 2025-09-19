@@ -222,6 +222,18 @@ def get_system_prompt_for_event(env: AgentEnv, event_message: str) -> str:
 	return system_prompt
 
 
+def reply_to_content(env: AgentEnv, content_id: str, reply_text: str, notes_and_strategy: str):
+	do_execute = not env.test_mode or confirm_yes_no("Execute the action?")
+	if do_execute:
+		command = ReplyToContent(content_id=content_id, reply_text=reply_text)
+		action_result = command.execute(env)
+		fmtlog.header(3, "Action result:")
+		fmtlog.code(yaml_dump(action_result))
+		save_result(env, HistoryItem(notes_and_strategy=notes_and_strategy))
+	else:
+		logger.info("Skipped execution")
+
+
 def handle_new_post(env: AgentEnv, event_message: str):
 	system_prompt = get_system_prompt_for_event(env, event_message)
 
@@ -236,20 +248,11 @@ def handle_new_post(env: AgentEnv, event_message: str):
 	fmtlog.header(3, f"Model action:")
 	fmtlog.code(yaml_dump(reply.model_dump()))
 
-	do_execute = not env.test_mode or confirm_yes_no("Execute the action?")
+	if not reply.data:
+		logger.info("No action taken")
+		return
 
-	if do_execute:
-		if not reply.data:
-			logger.info("No action taken")
-			return
-		data = reply.data
-		command = ReplyToContent(content_id=data.content_id, reply_text=data.reply_text)
-		action_result = command.execute(env)
-		fmtlog.header(3, "Action result:")
-		fmtlog.code(yaml_dump(action_result))
-		save_result(env, HistoryItem(notes_and_strategy=reply.notes_and_strategy))
-	else:
-		logger.info("Skipped execution")
+	reply_to_content(env, reply.data.content_id, reply.data.reply_text, reply.notes_and_strategy)
 
 
 def handle_inbox_message(env: AgentEnv, event_message: str, comment_id: str):
@@ -266,20 +269,11 @@ def handle_inbox_message(env: AgentEnv, event_message: str, comment_id: str):
 	fmtlog.header(3, f"Model action:")
 	fmtlog.code(yaml_dump(reply.model_dump()))
 
-	do_execute = not env.test_mode or confirm_yes_no("Execute the action?")
+	if not reply.data:
+		logger.info("No action taken")
+		return
 
-	if do_execute:
-		if not reply.data:
-			logger.info("No action taken")
-			return
-		data = reply.data
-		command = ReplyToContent(content_id=comment_id, reply_text=data.reply_text)
-		action_result = command.execute(env)
-		fmtlog.header(3, "Action result:")
-		fmtlog.code(yaml_dump(action_result))
-		save_result(env, HistoryItem(notes_and_strategy=reply.notes_and_strategy))
-	else:
-		logger.info("Skipped execution")
+	reply_to_content(env, comment_id, reply.data.reply_text, reply.notes_and_strategy)
 
 
 def run_agent(env: AgentEnv):
