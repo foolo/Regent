@@ -1,10 +1,20 @@
 from abc import ABC, abstractmethod
+from enum import IntEnum
 from typing import Any
 from colorama import init as colorama_init
 from colorama import Fore, Style
 
 
+class LogLevel(IntEnum):
+	DEBUG = 10
+	INFO = 20
+
+
 class BaseLogger(ABC):
+	@abstractmethod
+	def get_log_level(self) -> int:
+		pass
+
 	@abstractmethod
 	def code(self, code: str):
 		pass
@@ -19,8 +29,12 @@ class BaseLogger(ABC):
 
 
 class MarkdownLogger(BaseLogger):
-	def __init__(self, file_path: str):
+	def __init__(self, file_path: str, log_level: int):
 		self.file = open(file_path, "w")
+		self.log_level = log_level
+
+	def get_log_level(self) -> int:
+		return self.log_level
 
 	def code(self, code: str):
 		self.file.write(f"```\n{code.strip()}\n```\n\n")
@@ -36,6 +50,12 @@ class MarkdownLogger(BaseLogger):
 
 
 class ColoredTerminalLogger(BaseLogger):
+	def __init__(self, log_level: int):
+		self.log_level = log_level
+
+	def get_log_level(self) -> int:
+		return self.log_level
+
 	def code(self, code: str):
 		print(Fore.BLUE + code + Style.RESET_ALL)
 
@@ -54,17 +74,20 @@ class FormattedLogger:
 	def register_logger(self, logger: BaseLogger):
 		self.loggers.append(logger)
 
-	def code(self, code: Any):
+	def code(self, code: Any, log_level: int = LogLevel.INFO):
 		for l in self.loggers:
-			l.code(code)
+			if log_level >= l.get_log_level():
+				l.code(code)
 
-	def text(self, text: Any):
+	def text(self, text: Any, log_level: int = LogLevel.INFO):
 		for l in self.loggers:
-			l.text(text)
+			if log_level >= l.get_log_level():
+				l.text(text)
 
-	def header(self, level: int, text: Any):
+	def header(self, level: int, text: Any, log_level: int = LogLevel.INFO):
 		for l in self.loggers:
-			l.header(level, text)
+			if log_level >= l.get_log_level():
+				l.header(level, text)
 
 
 fmtlog = FormattedLogger()

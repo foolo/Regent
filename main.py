@@ -8,7 +8,7 @@ import yaml
 from praw import Reddit  # type: ignore
 
 from src.agent_env import AgentEnv
-from src.formatted_logger import ColoredTerminalLogger, MarkdownLogger, fmtlog
+from src.formatted_logger import ColoredTerminalLogger, LogLevel, MarkdownLogger, fmtlog
 from src.log_config import logger
 from src.agent import run_agent
 from src.reddit_utils import LoadConfigException, load_reddit_config
@@ -63,8 +63,8 @@ def run():
 	logger.setLevel(log_level)
 
 	markdown_log_filename = datetime.now().isoformat(sep="_", timespec="seconds") + ".log.md"
-	fmtlog.register_logger(MarkdownLogger(os.path.join(args.markdown_log_dir, markdown_log_filename)))
-	fmtlog.register_logger(ColoredTerminalLogger())
+	fmtlog.register_logger(MarkdownLogger(os.path.join(args.markdown_log_dir, markdown_log_filename), LogLevel.DEBUG))
+	fmtlog.register_logger(ColoredTerminalLogger(LogLevel.INFO))
 
 	reddit = initialize_reddit()
 
