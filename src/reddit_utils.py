@@ -94,7 +94,7 @@ class CommentTreeNode:
 	text: str
 	content_id: str
 	score: int
-	replies: list['CommentTreeNode'] = field(default_factory=list)
+	replies: list['CommentTreeNode'] = field(default_factory=list)  # type: ignore
 
 	def to_dict(self) -> dict[str, Any]:
 		return {
