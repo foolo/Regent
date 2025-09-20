@@ -292,7 +292,7 @@ def run_agent(env: AgentEnv):
 		try:
 			handle_new_event(env)
 		except Exception:
-			logger.exception("Error in wait_for_event")
+			logger.exception("Error in handle_new_event")
 
 		if env.test_mode:
 			confirm_enter()
