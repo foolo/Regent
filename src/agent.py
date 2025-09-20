@@ -96,9 +96,7 @@ def reply_to_content(env: AgentEnv, content_id: str, reply_text: str, notes_and_
 
 
 def handle_new_post(env: AgentEnv, system_prompt: str, comment_tree: SubmissionTreeNode):
-	if env.test_mode:
-		confirm_enter()
-		print("Generating a reply...")
+	print("Generating a reply...")
 	reply = env.provider.reply_to_post(system_prompt)
 	if reply is None:
 		fmtlog.text("Error: Could not get reply.")
@@ -124,9 +122,7 @@ def handle_new_post(env: AgentEnv, system_prompt: str, comment_tree: SubmissionT
 
 
 def handle_inbox_message(env: AgentEnv, system_prompt: str, comment_id: str):
-	if env.test_mode:
-		confirm_enter()
-		print("Generating a reply...")
+	print("Generating a reply...")
 	reply = env.provider.reply_to_inbox(system_prompt)
 	if reply is None:
 		fmtlog.text("Error: Could not get reply.")
