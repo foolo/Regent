@@ -169,7 +169,8 @@ def handle_new_event(env: AgentEnv):
 		fmtlog.text(f"Link: https://reddit.com{comment.context}")
 
 		event_message = f"You have a new comment in your inbox. Here is the conversation:\n\n```json\n{json_msg}\n```"
-		handle_inbox_message(env, event_message, COMMENT_PREFIX + comment.id)
+		system_prompt = get_system_prompt_for_event(env, event_message)
+		handle_inbox_message(env, system_prompt, COMMENT_PREFIX + comment.id)
 
 		if not env.test_mode or confirm_yes_no("Mark comment as read?"):
 			comment.mark_read()
