@@ -78,6 +78,75 @@ def append_to_history(env: AgentEnv, history_item: HistoryItem):
 		env.state.history = env.state.history[-env.agent_config.max_history_length:]
 
 
+def save_result(env: AgentEnv, history_item: HistoryItem):
+	append_to_history(env, history_item)
+	env.save_state()
+
+
+def reply_to_content(env: AgentEnv, content_id: str, reply_text: str, notes_and_strategy: str):
+	do_execute = not env.test_mode or confirm_yes_no("Execute the action?")
+	if do_execute:
+		command = ReplyToContent(content_id=content_id, reply_text=reply_text)
+		action_result = command.execute(env)
+		fmtlog.header(3, "Action result:")
+		fmtlog.code(yaml_dump(action_result))
+		save_result(env, HistoryItem(notes_and_strategy=notes_and_strategy))
+	else:
+		logger.info("Skipped execution")
+
+
+def handle_new_post(env: AgentEnv, system_prompt: str):
+	if env.test_mode:
+		confirm_enter()
+		print("Generating a model action...")
+	reply = env.provider.reply_to_post(system_prompt)
+	if reply is None:
+		fmtlog.text("Error: Could not get reply.")
+		return
+
+	fmtlog.header(3, f"Model action:")
+	fmtlog.code(yaml_dump(reply.model_dump()))
+
+	if not reply.data:
+		logger.info("No action taken")
+		return
+
+	reply_to_content(env, reply.data.content_id, reply.data.reply_text, reply.notes_and_strategy)
+
+
+def handle_inbox_message(env: AgentEnv, system_prompt: str, comment_id: str):
+	if env.test_mode:
+		confirm_enter()
+		print("Generating a model action...")
+	reply = env.provider.reply_to_inbox(system_prompt)
+	if reply is None:
+		fmtlog.text("Error: Could not get reply.")
+		return
+
+	fmtlog.header(3, f"Model action:")
+	fmtlog.code(yaml_dump(reply.model_dump()))
+
+	if not reply.data:
+		logger.info("No action taken")
+		return
+
+	reply_to_content(env, comment_id, reply.data.reply_text, reply.notes_and_strategy)
+
+
+def get_system_prompt_for_event(env: AgentEnv, event_message: str) -> str:
+	event_prompt = [
+	    "## Event message:",
+	    event_message,
+	    "",
+	    NOTES_INSTRUCTIONS,
+	]
+	fmtlog.header(3, "Event prompt:", LogLevel.DEBUG)
+	fmtlog.text("\n".join(event_prompt), LogLevel.DEBUG)
+
+	system_prompt = "\n".join(get_leading_system_prompt(env) + [""] + event_prompt)
+	return system_prompt
+
+
 def handle_new_event(env: AgentEnv):
 	fmtlog.header(3, "Waiting for event...")
 	comments = list_inbox_comments(env.reddit)
@@ -162,11 +231,6 @@ def get_leading_system_prompt(env: AgentEnv) -> list[str]:
 	]
 
 
-def save_result(env: AgentEnv, history_item: HistoryItem):
-	append_to_history(env, history_item)
-	env.save_state()
-
-
 @dataclass
 class PerformActionResult:
 	notes_and_strategy: str
@@ -207,70 +271,6 @@ def perform_action(env: AgentEnv) -> PerformActionResult | None:
 			return PerformActionResult(notes_and_strategy=submission.notes_and_strategy, action_result={'result': 'Post created'})
 		else:
 			return PerformActionResult(notes_and_strategy=submission.notes_and_strategy, action_result={'note': 'Skipped execution'})
-
-
-def get_system_prompt_for_event(env: AgentEnv, event_message: str) -> str:
-	event_prompt = [
-	    "## Event message:",
-	    event_message,
-	    "",
-	    NOTES_INSTRUCTIONS,
-	]
-	fmtlog.header(3, "Event prompt:", LogLevel.DEBUG)
-	fmtlog.text("\n".join(event_prompt), LogLevel.DEBUG)
-
-	system_prompt = "\n".join(get_leading_system_prompt(env) + [""] + event_prompt)
-	return system_prompt
-
-
-def reply_to_content(env: AgentEnv, content_id: str, reply_text: str, notes_and_strategy: str):
-	do_execute = not env.test_mode or confirm_yes_no("Execute the action?")
-	if do_execute:
-		command = ReplyToContent(content_id=content_id, reply_text=reply_text)
-		action_result = command.execute(env)
-		fmtlog.header(3, "Action result:")
-		fmtlog.code(yaml_dump(action_result))
-		save_result(env, HistoryItem(notes_and_strategy=notes_and_strategy))
-	else:
-		logger.info("Skipped execution")
-
-
-def handle_new_post(env: AgentEnv, system_prompt: str):
-	if env.test_mode:
-		confirm_enter()
-		print("Generating a model action...")
-	reply = env.provider.reply_to_post(system_prompt)
-	if reply is None:
-		fmtlog.text("Error: Could not get reply.")
-		return
-
-	fmtlog.header(3, f"Model action:")
-	fmtlog.code(yaml_dump(reply.model_dump()))
-
-	if not reply.data:
-		logger.info("No action taken")
-		return
-
-	reply_to_content(env, reply.data.content_id, reply.data.reply_text, reply.notes_and_strategy)
-
-
-def handle_inbox_message(env: AgentEnv, system_prompt: str, comment_id: str):
-	if env.test_mode:
-		confirm_enter()
-		print("Generating a model action...")
-	reply = env.provider.reply_to_inbox(system_prompt)
-	if reply is None:
-		fmtlog.text("Error: Could not get reply.")
-		return
-
-	fmtlog.header(3, f"Model action:")
-	fmtlog.code(yaml_dump(reply.model_dump()))
-
-	if not reply.data:
-		logger.info("No action taken")
-		return
-
-	reply_to_content(env, comment_id, reply.data.reply_text, reply.notes_and_strategy)
 
 
 def run_agent(env: AgentEnv):
