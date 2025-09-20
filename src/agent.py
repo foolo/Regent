@@ -84,7 +84,7 @@ def save_result(env: AgentEnv, history_item: HistoryItem):
 
 
 def reply_to_content(env: AgentEnv, content_id: str, reply_text: str, notes_and_strategy: str):
-	do_execute = not env.test_mode or confirm_yes_no("Execute the action?")
+	do_execute = not env.test_mode or confirm_yes_no("Submit the reply?")
 	if do_execute:
 		command = ReplyToContent(content_id=content_id, reply_text=reply_text)
 		action_result = command.execute(env)
@@ -92,7 +92,7 @@ def reply_to_content(env: AgentEnv, content_id: str, reply_text: str, notes_and_
 		fmtlog.code(yaml_dump(action_result))
 		save_result(env, HistoryItem(notes_and_strategy=notes_and_strategy))
 	else:
-		logger.info("Skipped execution")
+		logger.info("Skipped reply submission on user's request")
 
 
 def handle_new_post(env: AgentEnv, system_prompt: str, comment_tree: SubmissionTreeNode):
