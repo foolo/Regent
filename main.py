@@ -63,6 +63,7 @@ def run():
 	logger.setLevel(log_level)
 
 	markdown_log_filename = datetime.now().isoformat(sep="_", timespec="seconds") + ".log.md"
+	print(f"Logging to {os.path.join(args.markdown_log_dir, markdown_log_filename)}")
 	fmtlog.register_logger(MarkdownLogger(os.path.join(args.markdown_log_dir, markdown_log_filename), LogLevel.DEBUG))
 	fmtlog.register_logger(ColoredTerminalLogger(LogLevel.INFO))
 
