@@ -57,10 +57,10 @@ class ColoredTerminalLogger(BaseLogger):
 		return self.log_level
 
 	def code(self, code: str):
-		print(Fore.BLUE + code + Style.RESET_ALL)
+		print(Fore.LIGHTBLUE_EX + code + Style.RESET_ALL)
 
 	def text(self, text: str):
-		print(text)
+		print(Fore.CYAN + text + Style.RESET_ALL)
 
 	def header(self, level: int, text: str):
 		print(Fore.GREEN + f"{'#' * level} {text}" + Style.RESET_ALL)
