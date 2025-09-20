@@ -98,13 +98,13 @@ def reply_to_content(env: AgentEnv, content_id: str, reply_text: str, notes_and_
 def handle_new_post(env: AgentEnv, system_prompt: str, comment_tree: SubmissionTreeNode):
 	if env.test_mode:
 		confirm_enter()
-		print("Generating a model action...")
+		print("Generating a reply...")
 	reply = env.provider.reply_to_post(system_prompt)
 	if reply is None:
 		fmtlog.text("Error: Could not get reply.")
 		return
 
-	fmtlog.header(3, f"Model action:")
+	fmtlog.header(3, f"Generated reply:")
 	fmtlog.code(yaml_dump(reply.model_dump()))
 
 	if not reply.data:
@@ -126,13 +126,13 @@ def handle_new_post(env: AgentEnv, system_prompt: str, comment_tree: SubmissionT
 def handle_inbox_message(env: AgentEnv, system_prompt: str, comment_id: str):
 	if env.test_mode:
 		confirm_enter()
-		print("Generating a model action...")
+		print("Generating a reply...")
 	reply = env.provider.reply_to_inbox(system_prompt)
 	if reply is None:
 		fmtlog.text("Error: Could not get reply.")
 		return
 
-	fmtlog.header(3, f"Model action:")
+	fmtlog.header(3, f"Generated reply:")
 	fmtlog.code(yaml_dump(reply.model_dump()))
 
 	if not reply.data:
@@ -268,7 +268,7 @@ def perform_action(env: AgentEnv) -> PerformActionResult | None:
 			print("Generating a new post...")
 		submission = env.provider.generate_submission(system_prompt)
 		if submission is None:
-			fmtlog.text("Error: Could not get model action.")
+			fmtlog.text("Error: Could not get submission.")
 			return None
 		fmtlog.header(3, "Model generated submission")
 		fmtlog.code(yaml_dump(submission.model_dump()))
