@@ -208,6 +208,32 @@ def get_comment_tree(submission: Submission, max_size: int) -> SubmissionTreeNod
 	)
 
 
+def find_content_in_comment_tree(nodes: list[CommentTreeNode], content_id: str) -> dict[str, str] | None:
+	for node in nodes:
+		if node.content_id == content_id:
+			return {
+			    'content_id': node.content_id,
+			    'author': node.author,
+			    'text': node.text,
+			}
+		found = find_content_in_comment_tree(node.replies, content_id)
+		if found:
+			return found
+	return None
+
+
+def find_content_in_submission_tree(node: SubmissionTreeNode, content_id: str) -> dict[str, str] | None:
+	if node.content_id == content_id:
+		return {
+		    'content_id': node.content_id,
+		    'subreddit': node.subreddit,
+		    'author': node.author,
+		    'title': node.title,
+		    'text': node.text,
+		}
+	return find_content_in_comment_tree(node.replies, content_id)
+
+
 def canonicalize_subreddit_name(subreddit_name: str) -> str:
 	subreddit = subreddit_name.strip().lower()
 	if subreddit.startswith('r/'):

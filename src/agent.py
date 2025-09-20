@@ -10,7 +10,7 @@ from src.formatted_logger import LogLevel, fmtlog
 from praw.models import Submission  # type: ignore
 from src.commands import AgentEnv, ReplyToContent, seconds_since_last_post
 from src.pydantic_models.agent_state import HistoryItem, StreamedSubmission
-from src.reddit_utils import COMMENT_PREFIX, canonicalize_subreddit_name, get_author_name, get_comment_tree, get_current_user, list_inbox_comments, show_conversation
+from src.reddit_utils import COMMENT_PREFIX, SubmissionTreeNode, canonicalize_subreddit_name, find_content_in_submission_tree, get_author_name, get_comment_tree, get_current_user, list_inbox_comments, show_conversation
 from src.utils import confirm_enter, confirm_yes_no, yaml_dump
 
 submission_queue: queue.Queue[Submission] = queue.Queue()
@@ -95,7 +95,7 @@ def reply_to_content(env: AgentEnv, content_id: str, reply_text: str, notes_and_
 		logger.info("Skipped execution")
 
 
-def handle_new_post(env: AgentEnv, system_prompt: str):
+def handle_new_post(env: AgentEnv, system_prompt: str, comment_tree: SubmissionTreeNode):
 	if env.test_mode:
 		confirm_enter()
 		print("Generating a model action...")
@@ -109,6 +109,15 @@ def handle_new_post(env: AgentEnv, system_prompt: str):
 
 	if not reply.data:
 		logger.info("No action taken")
+		return
+
+	item_to_reply_to = find_content_in_submission_tree(comment_tree, reply.data.content_id)
+
+	fmtlog.header(4, "Item to reply to:")
+	if item_to_reply_to:
+		fmtlog.code(yaml_dump(item_to_reply_to))
+	else:
+		fmtlog.text(f"Error: Could not find content with ID: {reply.data.content_id}")
 		return
 
 	reply_to_content(env, reply.data.content_id, reply.data.reply_text, reply.notes_and_strategy)
@@ -187,7 +196,7 @@ def handle_new_event(env: AgentEnv):
 
 			event_message = f"You have a new post in the monitored subreddits. Here is the conversation tree, with the up to {max_comment_tree_size} highest rated comments:\n\n```json\n{json_msg}\n```"
 			system_prompt = get_system_prompt_for_event(env, event_message)
-			handle_new_post(env, system_prompt)
+			handle_new_post(env, system_prompt, comment_tree)
 		if not env.test_mode or confirm_yes_no("Remove post from stream?"):
 			del env.state.streamed_submissions[-1]
 	else:
