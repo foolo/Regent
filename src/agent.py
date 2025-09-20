@@ -176,7 +176,7 @@ def handle_new_event(env: AgentEnv):
 		else:
 			max_comment_tree_size = 20
 			comment_tree = get_comment_tree(latest_submission, max_comment_tree_size)
-			json_msg = json.dumps(comment_tree, ensure_ascii=False, indent=2)
+			json_msg = json.dumps(comment_tree.to_dict(), ensure_ascii=False, indent=2)
 
 			fmtlog.header(3, "New post event:")
 			fmtlog.text(f"Subreddit: {latest_submission.subreddit_name_prefixed}")

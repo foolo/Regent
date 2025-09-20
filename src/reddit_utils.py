@@ -89,6 +89,26 @@ def show_conversation(reddit: Reddit, comment_id: str) -> list[dict[str, str]]:
 
 
 @dataclass
+class SubmissionTreeNode:
+	subreddit: str
+	author: str
+	title: str
+	text: str
+	content_id: str
+	replies: list['CommentTreeNode'] = field(default_factory=list)  # type: ignore
+
+	def to_dict(self) -> dict[str, Any]:
+		return {
+		    'content_id': self.content_id,
+		    'subreddit': self.subreddit,
+		    'author': self.author,
+		    'title': self.title,
+		    'text': self.text,
+		    'replies': [r.to_dict() for r in self.replies],
+		}
+
+
+@dataclass
 class CommentTreeNode:
 	author: str
 	text: str
@@ -98,9 +118,9 @@ class CommentTreeNode:
 
 	def to_dict(self) -> dict[str, Any]:
 		return {
+		    'content_id': self.content_id,
 		    'author': self.author,
 		    'text': self.text,
-		    'content_id': self.content_id,
 		    'score': self.score,
 		    'replies': [r.to_dict() for r in self.replies],
 		}
@@ -170,7 +190,7 @@ def get_cropped_tree(tree: list[CommentTreeNode], min_score_threshold: int | Non
 	return items
 
 
-def get_comment_tree(submission: Submission, max_size: int) -> dict[str, Any]:
+def get_comment_tree(submission: Submission, max_size: int) -> SubmissionTreeNode:
 	comment_tree = get_comment_tree_recursive(submission.comments)
 	tree_size = get_tree_size(None, comment_tree)
 	if tree_size >= max_size:
@@ -178,14 +198,14 @@ def get_comment_tree(submission: Submission, max_size: int) -> dict[str, Any]:
 	else:
 		min_score_threshold = None
 	cropped_tree = get_cropped_tree(comment_tree, min_score_threshold)
-	return {
-	    'subreddit': submission.subreddit.display_name,
-	    'content_id': SUBMISSION_PREFIX + submission.id,
-	    'author': get_author_name(submission),
-	    'title': submission.title,
-	    'text': submission.selftext,
-	    'children': [r.to_dict() for r in cropped_tree],
-	}
+	return SubmissionTreeNode(
+	    subreddit=submission.subreddit.display_name,
+	    content_id=SUBMISSION_PREFIX + submission.id,
+	    author=get_author_name(submission),
+	    title=submission.title,
+	    text=submission.selftext,
+	    replies=cropped_tree,
+	)
 
 
 def canonicalize_subreddit_name(subreddit_name: str) -> str:
