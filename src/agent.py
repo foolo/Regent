@@ -286,13 +286,6 @@ def run_agent(env: AgentEnv):
 	stream_submissions_thread.start()
 	stream_submissions_to_state(env, wait_once=True)
 
-	fmtlog.header(3, "History:")
-	if len(env.state.history) == 0:
-		fmtlog.text("No history yet.")
-	for i, history_item in enumerate(env.state.history):
-		fmtlog.header(4, f"History item {i}")
-		fmtlog.code(history_item.notes_and_strategy)
-
 	while True:
 
 		# Reactions
