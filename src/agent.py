@@ -179,6 +179,7 @@ def handle_new_event(env: AgentEnv):
 			json_msg = json.dumps(comment_tree, ensure_ascii=False, indent=2)
 
 			fmtlog.header(3, "New post event:")
+			fmtlog.text(f"Subreddit: {latest_submission.subreddit_name_prefixed}")
 			fmtlog.text(f"Title: {latest_submission.title}")
 			fmtlog.text(f"URL: {latest_submission.url}")
 			fmtlog.text(f"Author: {get_author_name(latest_submission)}")
