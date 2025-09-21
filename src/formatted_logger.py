@@ -5,70 +5,72 @@ from colorama import Fore, Style
 from src.log_config import FileLogger, LogLevel
 
 
-class BaseLogger(ABC):
+class MarkupElement(ABC):
 	@abstractmethod
-	def code(self, code: str):
+	def render_md(self) -> str:
 		pass
 
 	@abstractmethod
-	def text(self, text: str):
-		pass
-
-	@abstractmethod
-	def header(self, level: int, text: str):
+	def render_terminal(self) -> str:
 		pass
 
 
-class MarkdownLogger(BaseLogger):
-	def __init__(self, logger: FileLogger):
-		self.logger = logger
+class FmtCode(MarkupElement):
+	def __init__(self, code: str):
+		self.code = code
 
-	def code(self, code: str):
-		self.logger.log(LogLevel.IMPORTANT, f"```\n{code.strip()}\n```\n\n")
+	def render_md(self) -> str:
+		return f"```\n{self.code.strip()}\n```"
 
-	def text(self, text: str):
-		self.logger.log(LogLevel.IMPORTANT, text.strip())
-
-	def header(self, level: int, text: str):
-		self.logger.log(LogLevel.IMPORTANT, f"{'#' * level} {text.strip()}")
+	def render_terminal(self) -> str:
+		return Fore.LIGHTBLUE_EX + self.code + Style.RESET_ALL
 
 
-class ColoredTerminalLogger(BaseLogger):
-	def __init__(self, log_level: int):
-		self.log_level = log_level
+class FmtText(MarkupElement):
+	def __init__(self, text: str):
+		self.text = text
 
-	def get_log_level(self) -> int:
-		return self.log_level
+	def render_md(self) -> str:
+		return self.text.strip()
 
-	def code(self, code: str):
-		print(Fore.LIGHTBLUE_EX + code + Style.RESET_ALL)
+	def render_terminal(self) -> str:
+		return Fore.CYAN + self.text + Style.RESET_ALL
 
-	def text(self, text: str):
-		print(Fore.CYAN + text + Style.RESET_ALL)
 
-	def header(self, level: int, text: str):
-		print(Fore.GREEN + f"{'#' * level} {text}" + Style.RESET_ALL)
+class FmtHeader(MarkupElement):
+	def __init__(self, level: int, text: str):
+		self.level = level
+		self.text = text
+
+	def render_md(self) -> str:
+		return f"{'#' * self.level} {self.text.strip()}"
+
+	def render_terminal(self) -> str:
+		return Fore.GREEN + f"{'#' * self.level} {self.text}" + Style.RESET_ALL
 
 
 class FormattedLogger:
-	def __init__(self):
+	def __init__(self, file_logger: FileLogger):
 		colorama_init()
-		self.loggers: list[BaseLogger] = []
+		self.file_logger = file_logger
 
-	def register_logger(self, logger: BaseLogger):
-		self.loggers.append(logger)
-
-	def code(self, code: str):
-		for l in self.loggers:
-			l.code(code)
-
-	def text(self, text: str):
-		for l in self.loggers:
-			l.text(text)
-
-	def header(self, level: int, text: str):
-		for l in self.loggers:
-			l.header(level, text)
+	def log(self, elements: list[MarkupElement]):
+		self.file_logger.log(LogLevel.IMPORTANT, "\n\n".join([el.render_md() for el in elements]))
+		print("\n".join([el.render_terminal() for el in elements]))
 
 
-fmtlog = FormattedLogger()
+class LogContainer:
+	def __init__(self):
+		self.formatted_logger = None
+
+	def register_logger(self, fmtlog: FormattedLogger):
+		self.formatted_logger = fmtlog
+
+
+log_container = LogContainer()
+
+
+def fmtlog(elements: list[MarkupElement]):
+	if not log_container.formatted_logger:
+		raise ValueError("formatted_logger must be registered in log_container before logging.")
+	log_container.formatted_logger.log(elements)

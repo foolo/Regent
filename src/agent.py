@@ -6,7 +6,7 @@ import threading
 import time
 from typing import Any
 from src.log_config import logger
-from src.formatted_logger import fmtlog
+from src.formatted_logger import FmtCode, FmtHeader, FmtText, fmtlog
 from praw.models import Submission  # type: ignore
 from src.commands import AgentEnv, ReplyToContent, seconds_since_last_post
 from src.pydantic_models.agent_state import HistoryItem, StreamedSubmission
@@ -88,8 +88,10 @@ def reply_to_content(env: AgentEnv, content_id: str, reply_text: str, notes_and_
 	if do_execute:
 		command = ReplyToContent(content_id=content_id, reply_text=reply_text)
 		action_result = command.execute(env)
-		fmtlog.header(3, "Action result:")
-		fmtlog.code(yaml_dump(action_result))
+		fmtlog([
+		    FmtHeader(3, "Action result:"),
+		    FmtCode(yaml_dump(action_result)),
+		])
 		save_result(env, HistoryItem(notes_and_strategy=notes_and_strategy))
 	else:
 		logger.info("Skipped reply submission on user's request")
@@ -99,11 +101,13 @@ def handle_new_post(env: AgentEnv, system_prompt: str, comment_tree: SubmissionT
 	print("Generating a reply...")
 	reply = env.provider.reply_to_post(system_prompt)
 	if reply is None:
-		fmtlog.text("Error: Could not get reply.")
+		fmtlog([FmtText("Error: Could not get reply.")])
 		return
 
-	fmtlog.header(3, f"Generated reply:")
-	fmtlog.code(yaml_dump(reply.model_dump()))
+	fmtlog([
+	    FmtHeader(3, f"Generated reply:"),
+	    FmtCode(yaml_dump(reply.model_dump())),
+	])
 
 	if not reply.data:
 		logger.info("No action taken")
@@ -111,11 +115,13 @@ def handle_new_post(env: AgentEnv, system_prompt: str, comment_tree: SubmissionT
 
 	item_to_reply_to = find_content_in_submission_tree(comment_tree, reply.data.content_id)
 
-	fmtlog.header(4, "Item to reply to:")
 	if item_to_reply_to:
-		fmtlog.code(yaml_dump(item_to_reply_to))
+		fmtlog([
+		    FmtHeader(4, "Item to reply to:"),
+		    FmtCode(yaml_dump(item_to_reply_to)),
+		])
 	else:
-		fmtlog.text(f"Error: Could not find content with ID: {reply.data.content_id}")
+		logger.error(f"Error: Could not find content with ID: {reply.data.content_id}")
 		return
 
 	reply_to_content(env, reply.data.content_id, reply.data.reply_text, reply.notes_and_strategy)
@@ -125,11 +131,13 @@ def handle_inbox_message(env: AgentEnv, system_prompt: str, comment_id: str):
 	print("Generating a reply...")
 	reply = env.provider.reply_to_inbox(system_prompt)
 	if reply is None:
-		fmtlog.text("Error: Could not get reply.")
+		fmtlog([FmtText("Error: Could not get reply.")])
 		return
 
-	fmtlog.header(3, f"Generated reply:")
-	fmtlog.code(yaml_dump(reply.model_dump()))
+	fmtlog([
+	    FmtHeader(3, f"Generated reply:"),
+	    FmtCode(yaml_dump(reply.model_dump())),
+	])
 
 	if not reply.data:
 		logger.info("No action taken")
@@ -151,20 +159,23 @@ def get_system_prompt_for_event(env: AgentEnv, event_message: str) -> str:
 
 
 def handle_new_event(env: AgentEnv):
-	fmtlog.header(3, "Waiting for event...")
+
+	fmtlog([FmtText("Waiting for event...")])
 	comments = list_inbox_comments(env.reddit)
-	fmtlog.text(f"Number of messages in inbox: {len(comments)}")
-	fmtlog.text(f"Number of unread posts: {len(env.state.streamed_submissions)}")
+	fmtlog([FmtText(f"Number of messages in inbox: {len(comments)}")])
+	fmtlog([FmtText(f"Number of unread posts: {len(env.state.streamed_submissions)}")])
 	stream_submissions_to_state(env)
 	if len(comments) > 0:
 		comment = comments[0]
 		conversation = show_conversation(env.reddit, comment.id)
 		json_msg = json.dumps(conversation, ensure_ascii=False, indent=2)
 
-		fmtlog.header(3, "New inbox comment event:")
-		fmtlog.text(f"From: {get_author_name(comment)}")
-		fmtlog.text(f"Comment: {comment.body}")
-		fmtlog.text(f"Link: https://reddit.com{comment.context}")
+		fmtlog([
+		    FmtHeader(3, "New inbox comment event:"),
+		    FmtText(f"From: {get_author_name(comment)}"),
+		    FmtText(f"Comment: {comment.body}"),
+		    FmtText(f"Link: https://reddit.com{comment.context}"),
+		])
 
 		event_message = f"You have a new comment in your inbox. Here is the conversation:\n\n```json\n{json_msg}\n```"
 		system_prompt = get_system_prompt_for_event(env, event_message)
@@ -182,12 +193,14 @@ def handle_new_event(env: AgentEnv):
 			comment_tree = get_comment_tree(latest_submission, max_comment_tree_size)
 			json_msg = json.dumps(comment_tree.to_dict(), ensure_ascii=False, indent=2)
 
-			fmtlog.header(3, "New post event:")
-			fmtlog.text(f"Subreddit: {latest_submission.subreddit_name_prefixed}")
-			fmtlog.text(f"Title: {latest_submission.title}")
-			fmtlog.text(f"URL: {latest_submission.url}")
-			fmtlog.text(f"Author: {get_author_name(latest_submission)}")
-			fmtlog.text(f"Text: {latest_submission.selftext}")
+			fmtlog([
+			    FmtHeader(3, "New post event:"),
+			    FmtText(f"Subreddit: {latest_submission.subreddit_name_prefixed}"),
+			    FmtText(f"Title: {latest_submission.title}"),
+			    FmtText(f"URL: {latest_submission.url}"),
+			    FmtText(f"Author: {get_author_name(latest_submission)}"),
+			    FmtText(f"Text: {latest_submission.selftext}"),
+			])
 
 			event_message = f"You have a new post in the monitored subreddits. Here is the conversation tree, with the up to {max_comment_tree_size} highest rated comments:\n\n```json\n{json_msg}\n```"
 			system_prompt = get_system_prompt_for_event(env, event_message)
@@ -195,7 +208,7 @@ def handle_new_event(env: AgentEnv):
 		if not env.test_mode or confirm_yes_no("Remove post from stream?"):
 			del env.state.streamed_submissions[-1]
 	else:
-		fmtlog.text("No new events.")
+		fmtlog([FmtText("No new events.")])
 		return
 
 
@@ -253,8 +266,10 @@ def perform_action(env: AgentEnv) -> PerformActionResult | None:
 		    "Your task is to create a new post in one of the subreddits you are active on.",
 		    NOTES_INSTRUCTIONS,
 		]
-		fmtlog.header(3, "Action prompt:")
-		fmtlog.text("\n".join(action_prompt))
+		fmtlog([
+		    FmtHeader(3, "Action prompt:"),
+		    FmtText("\n".join(action_prompt)),
+		])
 
 		system_prompt = "\n".join(get_leading_system_prompt(env) + [""] + action_prompt)
 
@@ -263,10 +278,12 @@ def perform_action(env: AgentEnv) -> PerformActionResult | None:
 			print("Generating a new post...")
 		submission = env.provider.generate_submission(system_prompt)
 		if submission is None:
-			fmtlog.text("Error: Could not get submission.")
+			fmtlog([FmtText("Error: Could not get submission.")])
 			return None
-		fmtlog.header(3, "Model generated submission")
-		fmtlog.code(yaml_dump(submission.model_dump()))
+		fmtlog([
+		    FmtHeader(3, "Model generated submission"),
+		    FmtCode(yaml_dump(submission.model_dump())),
+		])
 		do_execute = not env.test_mode or confirm_yes_no("Execute the action?")
 		if do_execute:
 			subreddit = canonicalize_subreddit_name(submission.subreddit)
@@ -304,11 +321,13 @@ def run_agent(env: AgentEnv):
 			perform_action_result = perform_action(env)
 
 			if perform_action_result:
-				fmtlog.header(3, "Action result:")
-				fmtlog.code(yaml_dump(perform_action_result.action_result))
+				fmtlog([
+				    FmtHeader(3, "Action result:"),
+				    FmtCode(yaml_dump(perform_action_result.action_result)),
+				])
 				save_result(env, HistoryItem(notes_and_strategy=perform_action_result.notes_and_strategy))
 			else:
-				fmtlog.text("No action performed.")
+				fmtlog([FmtText("No action performed.")])
 		except Exception as e:
 			logger.error("Error in perform_action")
 			logger.exception(e)

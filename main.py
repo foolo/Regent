@@ -8,7 +8,7 @@ import yaml
 from praw import Reddit  # type: ignore
 
 from src.agent_env import AgentEnv
-from src.formatted_logger import ColoredTerminalLogger, LogLevel, MarkdownLogger, fmtlog
+from src.formatted_logger import FmtText, FormattedLogger, LogLevel, fmtlog, log_container
 from src.log_config import FileLogger, StdStreamLogger, logger
 from src.agent import run_agent
 from src.reddit_utils import LoadConfigException, load_reddit_config
@@ -29,7 +29,7 @@ def initialize_reddit():
 	    user_agent=config.user_agent,
 	    refresh_token=config.refresh_token,
 	)
-	fmtlog.text(f"Logged in as: {reddit.user.me()}")
+	fmtlog([FmtText(f"Logged in as: {reddit.user.me()}")])
 	return reddit
 
 
@@ -68,15 +68,15 @@ def run():
 	logger.register_logger(file_logger)
 	logger.register_logger(stream_logger)
 
-	fmtlog.register_logger(MarkdownLogger(file_logger))
-	fmtlog.register_logger(ColoredTerminalLogger(LogLevel.INFO))
+	formatted_logger = FormattedLogger(file_logger)
+	log_container.register_logger(formatted_logger)
 
 	reddit = initialize_reddit()
 
 	if args.provider not in [provider.name for provider in Providers]:
 		raise ValueError(f"Unknown provider: {args.provider}. Available providers: {', '.join(available_providers)}")
 	provider_enum = Providers[args.provider]
-	fmtlog.text(f'Using provider: {provider_enum.name}')
+	fmtlog([FmtText(f'Using provider: {provider_enum.name}')])
 
 	if provider_enum.name == Providers.openai.name:
 		config_obj = load_config('config/openai_config.yaml')
@@ -89,7 +89,7 @@ def run():
 		agent_schema_obj = yaml.safe_load(f)
 
 	agent_config = AgentConfig(**agent_schema_obj)
-	fmtlog.text(f'Loaded agent: {agent_config.name}')
+	fmtlog([FmtText(f'Loaded agent: {agent_config.name}')])
 
 	agent_state_filename = 'agent_state.json'
 	agent_env = AgentEnv(agent_state_filename, agent_config, provider, reddit, args.test_mode)
