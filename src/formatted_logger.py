@@ -1,20 +1,11 @@
 from abc import ABC, abstractmethod
-from enum import IntEnum
-from typing import Any
 from colorama import init as colorama_init
 from colorama import Fore, Style
 
-
-class LogLevel(IntEnum):
-	DEBUG = 10
-	INFO = 20
+from src.log_config import FileLogger, LogLevel
 
 
 class BaseLogger(ABC):
-	@abstractmethod
-	def get_log_level(self) -> int:
-		pass
-
 	@abstractmethod
 	def code(self, code: str):
 		pass
@@ -29,24 +20,17 @@ class BaseLogger(ABC):
 
 
 class MarkdownLogger(BaseLogger):
-	def __init__(self, file_path: str, log_level: int):
-		self.file = open(file_path, "w")
-		self.log_level = log_level
-
-	def get_log_level(self) -> int:
-		return self.log_level
+	def __init__(self, logger: FileLogger):
+		self.logger = logger
 
 	def code(self, code: str):
-		self.file.write(f"```\n{code.strip()}\n```\n\n")
-		self.file.flush()
+		self.logger.log(LogLevel.IMPORTANT, f"```\n{code.strip()}\n```\n\n")
 
 	def text(self, text: str):
-		self.file.write(text.strip() + "\n\n")
-		self.file.flush()
+		self.logger.log(LogLevel.IMPORTANT, text.strip())
 
 	def header(self, level: int, text: str):
-		self.file.write(f"{'#' * level} {text.strip()}\n\n")
-		self.file.flush()
+		self.logger.log(LogLevel.IMPORTANT, f"{'#' * level} {text.strip()}")
 
 
 class ColoredTerminalLogger(BaseLogger):
@@ -74,20 +58,17 @@ class FormattedLogger:
 	def register_logger(self, logger: BaseLogger):
 		self.loggers.append(logger)
 
-	def code(self, code: Any, log_level: int = LogLevel.INFO):
+	def code(self, code: str):
 		for l in self.loggers:
-			if log_level >= l.get_log_level():
-				l.code(code)
+			l.code(code)
 
-	def text(self, text: Any, log_level: int = LogLevel.INFO):
+	def text(self, text: str):
 		for l in self.loggers:
-			if log_level >= l.get_log_level():
-				l.text(text)
+			l.text(text)
 
-	def header(self, level: int, text: Any, log_level: int = LogLevel.INFO):
+	def header(self, level: int, text: str):
 		for l in self.loggers:
-			if log_level >= l.get_log_level():
-				l.header(level, text)
+			l.header(level, text)
 
 
 fmtlog = FormattedLogger()

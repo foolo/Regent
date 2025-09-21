@@ -6,7 +6,7 @@ import threading
 import time
 from typing import Any
 from src.log_config import logger
-from src.formatted_logger import LogLevel, fmtlog
+from src.formatted_logger import fmtlog
 from praw.models import Submission  # type: ignore
 from src.commands import AgentEnv, ReplyToContent, seconds_since_last_post
 from src.pydantic_models.agent_state import HistoryItem, StreamedSubmission
@@ -145,8 +145,9 @@ def get_system_prompt_for_event(env: AgentEnv, event_message: str) -> str:
 	    "",
 	    NOTES_INSTRUCTIONS,
 	]
-	fmtlog.header(3, "Event prompt:", LogLevel.DEBUG)
-	fmtlog.text("\n".join(event_prompt), LogLevel.DEBUG)
+
+	fmtlog.header(3, "Event prompt:")
+	fmtlog.text("\n".join(event_prompt))
 
 	system_prompt = "\n".join(get_leading_system_prompt(env) + [""] + event_prompt)
 	return system_prompt
@@ -291,8 +292,9 @@ def run_agent(env: AgentEnv):
 		# Reactions
 		try:
 			handle_new_event(env)
-		except Exception:
-			logger.exception("Error in handle_new_event")
+		except Exception as e:
+			logger.error("Error in handle_new_event")
+			logger.exception(e)
 
 		if env.test_mode:
 			confirm_enter()
@@ -310,8 +312,9 @@ def run_agent(env: AgentEnv):
 				save_result(env, HistoryItem(notes_and_strategy=perform_action_result.notes_and_strategy))
 			else:
 				fmtlog.text("No action performed.")
-		except Exception:
-			logger.exception("Error in perform_action")
+		except Exception as e:
+			logger.error("Error in perform_action")
+			logger.exception(e)
 
 		if env.test_mode:
 			confirm_enter()

@@ -9,7 +9,7 @@ from praw import Reddit  # type: ignore
 
 from src.agent_env import AgentEnv
 from src.formatted_logger import ColoredTerminalLogger, LogLevel, MarkdownLogger, fmtlog
-from src.log_config import logger
+from src.log_config import FileLogger, StdStreamLogger, logger
 from src.agent import run_agent
 from src.reddit_utils import LoadConfigException, load_reddit_config
 from src.pydantic_models.agent_config import AgentConfig
@@ -21,7 +21,7 @@ def initialize_reddit():
 	try:
 		config = load_reddit_config()
 	except LoadConfigException as e:
-		logger.error(e)
+		logger.exception(e)
 		sys.exit(1)
 	reddit = Reddit(
 	    client_id=config.client_id,
@@ -48,23 +48,27 @@ def run():
 	parser.add_argument("agent_schema_file", type=str, help="Path to the agent schema file.")
 	parser.add_argument("provider", type=str, help=f"AI provider to use. Available providers: {', '.join(available_providers)}")
 	parser.add_argument("--test_mode", action="store_true", help="Enable confirmation before each action or step. Create post will always be available.")
-	parser.add_argument("--log_level", type=str, default="INFO", help="Set the log level. Default: INFO")
-	parser.add_argument("--markdown_log_dir", type=str, help="Directory to save markdown logs (default: current working directory)", default=os.getcwd())
+	parser.add_argument("--log_level", type=str, default="DEBUG", help="Set the log level for the log file. Default: DEBUG")
+	parser.add_argument("--log_dir", type=str, help="Directory to save logs (default: current working directory)", default=os.getcwd())
 	args = parser.parse_args()
 	assert isinstance(args.agent_schema_file, str)
 	assert isinstance(args.provider, str)
 	assert isinstance(args.test_mode, bool)
 	assert isinstance(args.log_level, str)
-	assert isinstance(args.markdown_log_dir, str)
+	assert isinstance(args.log_dir, str)
 
 	log_level = logging.getLevelNamesMapping().get(args.log_level)
 	if log_level is None:
 		raise ValueError(f"Invalid log level: {args.log_level}")
-	logger.setLevel(log_level)
 
-	markdown_log_filename = datetime.now().isoformat(sep="_", timespec="seconds") + ".log.md"
-	print(f"Logging to {os.path.join(args.markdown_log_dir, markdown_log_filename)}")
-	fmtlog.register_logger(MarkdownLogger(os.path.join(args.markdown_log_dir, markdown_log_filename), LogLevel.DEBUG))
+	log_filename = datetime.now().isoformat(sep="_", timespec="seconds").replace(":", "-") + ".log.md"
+	print(f"Logging to {os.path.join(args.log_dir, log_filename)}")
+	stream_logger = StdStreamLogger(LogLevel.INFO)
+	file_logger = FileLogger(os.path.join(args.log_dir, log_filename), log_level)
+	logger.register_logger(file_logger)
+	logger.register_logger(stream_logger)
+
+	fmtlog.register_logger(MarkdownLogger(file_logger))
 	fmtlog.register_logger(ColoredTerminalLogger(LogLevel.INFO))
 
 	reddit = initialize_reddit()
