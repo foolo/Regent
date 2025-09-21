@@ -20,8 +20,8 @@ from src.pydantic_models.openai_config import OpenAIConfig
 def initialize_reddit():
 	try:
 		config = load_reddit_config()
-	except LoadConfigException as e:
-		logger.exception(e)
+	except LoadConfigException:
+		logger.exception()
 		sys.exit(1)
 	reddit = Reddit(
 	    client_id=config.client_id,

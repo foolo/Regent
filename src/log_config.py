@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from enum import IntEnum
 import logging
+import traceback
 
 DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
 
@@ -66,8 +67,8 @@ class AppLogger:
 		for logger in self.loggers:
 			logger.log(LogLevel.ERROR, message)
 
-	def exception(self, e: Exception):
-		self.error(f"Exception: {e}")
+	def exception(self):
+		self.error(traceback.format_exc())
 
 
 logger = AppLogger()

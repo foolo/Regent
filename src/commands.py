@@ -25,7 +25,7 @@ class ReplyToContent:
 			try:
 				submission.reply(self.reply_text)
 			except Exception:
-				logger.exception(f"Error replying to post.")
+				logger.error(f"Error replying to post.")
 				return {'error': f"Could not reply to post with ID: {self.content_id}"}
 			return {'result': 'Reply posted successfully'}
 		elif self.content_id.startswith(COMMENT_PREFIX):
@@ -38,7 +38,7 @@ class ReplyToContent:
 			try:
 				comment.reply(self.reply_text)
 			except Exception:
-				logger.exception(f"Error replying to comment.")
+				logger.error(f"Error replying to comment.")
 				return {'error': f"Could not reply to comment with ID: {self.content_id}"}
 			return {'result': 'Reply posted successfully'}
 		else:
@@ -75,7 +75,7 @@ class CreatePost:
 			else:
 				return {'error': f"Not enough time has passed since the last post. Time until next post possible: {seconds_to_hms(int(time_left))}"}
 		except Exception:
-			logger.exception(f"Error creating post.")
+			logger.error(f"Error creating post.")
 			return {'error': 'Could not create post'}
 
 	@classmethod

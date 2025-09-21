@@ -306,9 +306,8 @@ def run_agent(env: AgentEnv):
 		# Reactions
 		try:
 			handle_new_event(env)
-		except Exception as e:
-			logger.error("Error in handle_new_event")
-			logger.exception(e)
+		except Exception:
+			logger.exception()
 
 		if env.test_mode:
 			confirm_enter()
@@ -328,9 +327,8 @@ def run_agent(env: AgentEnv):
 				save_result(env, HistoryItem(notes_and_strategy=perform_action_result.notes_and_strategy))
 			else:
 				fmtlog([FmtText("No action performed.")])
-		except Exception as e:
-			logger.error("Error in perform_action")
-			logger.exception(e)
+		except Exception:
+			logger.exception()
 
 		if env.test_mode:
 			confirm_enter()
