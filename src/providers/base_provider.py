@@ -22,13 +22,6 @@ class InboxReply(BaseModel):
 	notes_and_strategy: str
 
 
-class Submission(BaseModel):
-	subreddit: str
-	title: str
-	text: str
-	notes_and_strategy: str
-
-
 class BaseProvider(ABC):
 	@abstractmethod
 	def reply_to_post(self, system_prompt: str) -> PostReply | None:
@@ -36,8 +29,4 @@ class BaseProvider(ABC):
 
 	@abstractmethod
 	def reply_to_inbox(self, system_prompt: str) -> InboxReply | None:
-		pass
-
-	@abstractmethod
-	def generate_submission(self, system_prompt: str) -> Submission | None:
 		pass

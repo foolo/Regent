@@ -8,9 +8,9 @@ from typing import Any
 from src.log_config import logger
 from src.formatted_logger import FmtCode, FmtHeader, FmtText, fmtlog
 from praw.models import Submission  # type: ignore
-from src.commands import AgentEnv, ReplyToContent, seconds_since_last_post
+from src.commands import AgentEnv, ReplyToContent
 from src.pydantic_models.agent_state import HistoryItem, StreamedSubmission
-from src.reddit_utils import COMMENT_PREFIX, SubmissionTreeNode, canonicalize_subreddit_name, find_content_in_submission_tree, get_author_name, get_comment_tree, get_current_user, list_inbox_comments, show_conversation
+from src.reddit_utils import COMMENT_PREFIX, SubmissionTreeNode, find_content_in_submission_tree, get_author_name, get_comment_tree, get_current_user, list_inbox_comments, show_conversation
 from src.utils import confirm_enter, confirm_yes_no, yaml_dump
 
 submission_queue: queue.Queue[Submission] = queue.Queue()
@@ -260,41 +260,6 @@ It should include a summary of the event and your response to it. For example, "
 This will help you keep track of your strategy and make sure you are working towards your goals."""
 
 
-def perform_action(env: AgentEnv) -> PerformActionResult | None:
-	if env.agent_config.can_create_posts and seconds_since_last_post(env.reddit, env.agent_config) >= env.agent_config.time_between_scheduled_posts_hours * 3600:
-		action_prompt = [
-		    "Your task is to create a new post in one of the subreddits you are active on.",
-		    NOTES_INSTRUCTIONS,
-		]
-		fmtlog([
-		    FmtHeader(3, "Action prompt:"),
-		    FmtText("\n".join(action_prompt)),
-		])
-
-		system_prompt = "\n".join(get_leading_system_prompt(env) + [""] + action_prompt)
-
-		if env.test_mode:
-			confirm_enter()
-			print("Generating a new post...")
-		submission = env.provider.generate_submission(system_prompt)
-		if submission is None:
-			fmtlog([FmtText("Error: Could not get submission.")])
-			return None
-		fmtlog([
-		    FmtHeader(3, "Model generated submission"),
-		    FmtCode(yaml_dump(submission.model_dump())),
-		])
-		do_execute = not env.test_mode or confirm_yes_no("Execute the action?")
-		if do_execute:
-			subreddit = canonicalize_subreddit_name(submission.subreddit)
-			if not subreddit in [subreddit.lower() for subreddit in env.agent_config.active_on_subreddits]:
-				return PerformActionResult(notes_and_strategy=submission.notes_and_strategy, action_result={'error': f"You are not active on the subreddit: {subreddit}"})
-			env.reddit.subreddit(subreddit).submit(submission.title, selftext=submission.text)
-			return PerformActionResult(notes_and_strategy=submission.notes_and_strategy, action_result={'result': 'Post created'})
-		else:
-			return PerformActionResult(notes_and_strategy=submission.notes_and_strategy, action_result={'note': 'Skipped execution'})
-
-
 def run_agent(env: AgentEnv):
 	stream_submissions_thread = threading.Thread(target=handle_submissions, args=(env, ))
 	stream_submissions_thread.daemon = True
@@ -306,27 +271,6 @@ def run_agent(env: AgentEnv):
 		# Reactions
 		try:
 			handle_new_event(env)
-		except Exception:
-			logger.exception()
-
-		if env.test_mode:
-			confirm_enter()
-		else:
-			print("Wait for 10 seconds before handling the next event.")
-			time.sleep(10)
-
-		# Actions
-		try:
-			perform_action_result = perform_action(env)
-
-			if perform_action_result:
-				fmtlog([
-				    FmtHeader(3, "Action result:"),
-				    FmtCode(yaml_dump(perform_action_result.action_result)),
-				])
-				save_result(env, HistoryItem(notes_and_strategy=perform_action_result.notes_and_strategy))
-			else:
-				fmtlog([FmtText("No action performed.")])
 		except Exception:
 			logger.exception()
 

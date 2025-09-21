@@ -1,7 +1,7 @@
 from typing import Any
 from openai import OpenAI
 from openai.types.chat.parsed_chat_completion import ParsedChatCompletion
-from src.providers.base_provider import BaseProvider, PostReply, InboxReply, Submission
+from src.providers.base_provider import BaseProvider, PostReply, InboxReply
 from src.pydantic_models.openai_config import OpenAIConfig
 from src.log_config import logger
 
@@ -43,19 +43,6 @@ class OpenAIProvider(BaseProvider):
 		    model=self.model,
 		    messages=messages,
 		    response_format=InboxReply,
-		)
-		log_token_usage(completion)
-		return completion.choices[0].message.parsed
-
-	def generate_submission(self, system_prompt: str) -> Submission | None:
-		logger.debug(f"System prompt: {system_prompt}")
-		messages: list[Any] = []
-		messages.append({"role": 'system', "content": system_prompt})
-
-		completion = self.client.beta.chat.completions.parse(
-		    model=self.model,
-		    messages=messages,
-		    response_format=Submission,
 		)
 		log_token_usage(completion)
 		return completion.choices[0].message.parsed

@@ -52,11 +52,6 @@ def get_author_name(item: Comment | Submission) -> str:
 	return item.author.name
 
 
-def get_latest_submission(current_user: Redditor) -> Submission | None:
-	submissions_iter = current_user.submissions.new(limit=1)
-	return next(submissions_iter)
-
-
 def get_current_user(reddit: Reddit) -> Redditor:
 	current_user = reddit.user.me()
 	if not current_user:
@@ -232,10 +227,3 @@ def find_content_in_submission_tree(node: SubmissionTreeNode, content_id: str) -
 		    'text': node.text,
 		}
 	return find_content_in_comment_tree(node.replies, content_id)
-
-
-def canonicalize_subreddit_name(subreddit_name: str) -> str:
-	subreddit = subreddit_name.strip().lower()
-	if subreddit.startswith('r/'):
-		subreddit = subreddit[2:]
-	return subreddit
