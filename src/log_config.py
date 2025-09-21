@@ -71,9 +71,3 @@ class AppLogger:
 
 
 logger = AppLogger()
-
-formatter = logging.Formatter(
-    style='{',
-    fmt='{levelname:8} {asctime} {message}',
-    datefmt='%Y-%m-%d %H:%M:%S',
-)
