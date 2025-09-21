@@ -146,9 +146,6 @@ def get_system_prompt_for_event(env: AgentEnv, event_message: str) -> str:
 	    NOTES_INSTRUCTIONS,
 	]
 
-	fmtlog.header(3, "Event prompt:")
-	fmtlog.text("\n".join(event_prompt))
-
 	system_prompt = "\n".join(get_leading_system_prompt(env) + [""] + event_prompt)
 	return system_prompt
 
