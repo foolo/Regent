@@ -11,7 +11,7 @@ SCOPES = ["identity", "submit", "read", "privatemessages", "history"]
 
 
 def retrieve_refresh_token() -> int:
-	config = load_reddit_config()
+	config = load_reddit_config(auth_session=True)
 	redirect_host = 'localhost'
 	redirect_port = 8080
 	reddit = Reddit(

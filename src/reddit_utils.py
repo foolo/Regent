@@ -14,7 +14,7 @@ class LoadConfigException(Exception):
 	pass
 
 
-def load_reddit_config():
+def load_reddit_config(*, auth_session: bool = False):
 	if os.path.exists(REDDIT_CONFIG_FILENAME):
 		with open(REDDIT_CONFIG_FILENAME) as f:
 			config_obj = yaml.safe_load(f)
@@ -24,8 +24,9 @@ def load_reddit_config():
 	config = RedditConfig(**config_obj)
 	if not config.user_agent or config.user_agent == "":
 		config.user_agent = f"Regent"
-	if not config.refresh_token or config.refresh_token == "":
-		raise LoadConfigException(f"No Reddit refresh token found in {REDDIT_CONFIG_FILENAME}. Run 'python reddit_auth.py' to generate one.")
+	if not auth_session:
+		if not config.refresh_token or config.refresh_token == "":
+			raise LoadConfigException(f"No Reddit refresh token found in {REDDIT_CONFIG_FILENAME}. Run 'python reddit_auth.py' to generate one.")
 	return config
 
 
