@@ -9,6 +9,7 @@ Regent is a tool for running your own AI agent on Reddit.
 ```bash
 pip install praw
 pip install pyyaml
+pip install pydantic
 pip install colorama
 pip install openai
 ```
