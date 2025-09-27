@@ -52,5 +52,5 @@ See the comments in the example file for more information.
 ### Run the agent
 
 ```bash
-python3 main.py agents/my_agent.yaml openai
+python3 regent.py agents/my_agent.yaml openai
 ```
