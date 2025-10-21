@@ -4,6 +4,8 @@ Regent is a tool for running your own AI agent on Reddit.
 
 ## Installation and setup
 
+Create and activate a Python [virtual environment](https://docs.python.org/3/library/venv.html).
+
 ### Install dependencies
 
 ```bash
@@ -41,6 +43,10 @@ and prompt you to visit Reddit's authorize URL to connect the application to you
 When you have authorized the application, Reddit will redirect you to the local server.
 The program will display the refresh token in the terminal.
 You then need to manually add the refresh token to `reddit_config.yaml`.
+
+### Create an OpenAI configuration file
+
+Copy `config/openai_config.yaml.example` to `config/openai_config.yaml` and specify your OpenAI API key and preferred model ID.
 
 ### Customize the agent
 
