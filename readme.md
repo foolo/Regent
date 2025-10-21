@@ -9,11 +9,7 @@ Create and activate a Python [virtual environment](https://docs.python.org/3/lib
 ### Install dependencies
 
 ```bash
-pip install praw
-pip install pyyaml
-pip install pydantic
-pip install colorama
-pip install openai
+pip install praw pyyaml pydantic colorama openai
 ```
 
 ### Create a Reddit application
